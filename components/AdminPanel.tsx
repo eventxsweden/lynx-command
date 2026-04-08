@@ -4,6 +4,7 @@ import { sSet, sGet } from "@/lib/storage";
 import { LynxEvent, TeamProgress, HQState, PresetMessage } from "@/lib/types";
 import { FONT } from "@/lib/styles";
 import EventBuilder from "./EventBuilder";
+import { VOICE_PRESETS, setVoicePreset, getVoicePreset, previewVoice, VoicePreset } from "@/lib/speech";
 
 const PRESET_MESSAGES: PresetMessage[] = [
   { label: "⏰ Skynda", text: "Direktören meddelar: Tiden rinner ut, agenter. Öka tempot!", speech: "Tiden rinner ut, agenter. Öka tempot." },
@@ -33,6 +34,7 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   const [editValue, setEditValue] = useState("");
   const [showLinks, setShowLinks] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<VoicePreset>(getVoicePreset());
 
   const theme = event.theme;
   const v = theme.vocabulary;
@@ -291,6 +293,27 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
           }}>SKICKA</button>
         </div>
         {sentConfirm && <div style={{ marginTop: 8, fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#33ff88", animation: "fade-in 0.3s ease-out" }}>✓ Skickat till {sentConfirm}</div>}
+      </div>
+
+      {/* ═══ Voice Picker ═══ */}
+      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "14px 16px", marginBottom: 14 }}>
+        <div style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>🎙 DIREKTÖRENS RÖST</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {VOICE_PRESETS.map((vp) => (
+            <button key={vp.id} onClick={() => { setVoicePreset(vp.id); setSelectedVoice(vp.id); previewVoice(vp.id); }} style={{
+              flex: "1 1 100px", padding: "10px 8px",
+              background: selectedVoice === vp.id ? `${theme.accentColor}15` : "rgba(10,16,24,0.6)",
+              border: `1px solid ${selectedVoice === vp.id ? theme.accentColor : "#2a3a4a"}`,
+              borderRadius: 8, color: selectedVoice === vp.id ? theme.accentColor : "#6a8a9a",
+              fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer",
+              textAlign: "center", touchAction: "manipulation",
+              fontWeight: selectedVoice === vp.id ? 700 : 400,
+            }}>
+              <div>{vp.name}</div>
+              <div style={{ fontSize: "clamp(0.5rem,1vw,0.6rem)", color: "#4a6a7a", marginTop: 3 }}>{vp.description}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ═══ Cheat Sheet ═══ */}

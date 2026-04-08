@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
-import { playIncoming, playSuccess, playError, playUnlock, playTransmission, playStamp, playDotPling, playCrescendo, playStaticBurst, startAmbient } from "@/lib/audio";
+import { playIncoming, playSuccess, playError, playUnlock, playTransmission, playStamp, playDotPling, playCrescendo, playStaticBurst, startAmbient, stopAmbient } from "@/lib/audio";
 import { speak } from "@/lib/speech";
 import { Team, AdminMessage, HQState } from "@/lib/types";
 import { tBase, FONT } from "@/lib/styles";
@@ -35,7 +35,12 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLandscape, setIsLandscape] = useState(true);
   const fbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mission = team.missions[mIdx];
+  const mission = team.missions[mIdx] || null;
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { stopAmbient(); if (fbTimer.current) clearTimeout(fbTimer.current); };
+  }, []);
 
   // Landscape detection
   useEffect(() => {
@@ -319,6 +324,19 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
       `}</style>
     </div>
   );
+
+  // Guard: if mission is null (shouldn't happen but safety)
+  if (!mission) {
+    return (
+      <div style={tBase()}>
+        <div style={{ textAlign: "center", color: "#ff4444", fontFamily: FONT }}>
+          <div style={{ fontSize: "1.5rem", marginBottom: 8 }}>⚠</div>
+          <div>Inget uppdrag hittades. Kontakta instruktören.</div>
+        </div>
+        <ScanLines />
+      </div>
+    );
+  }
 
   // ── Active mission (briefing + input) ──
   const dots = team.missions.map((_, i) => ({ status: i < mIdx ? "clear" : i === mIdx ? "active" : "locked" }));

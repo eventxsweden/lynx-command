@@ -19,7 +19,9 @@ interface Props {
 }
 
 export default function HQScreen({ event }: Props) {
-  const [phase, setPhase] = useState("boot");
+  const VALID_PHASES = ["boot", "intro", "activate", "dispatch", "active", "converge", "final_code", "complete"] as const;
+  const [phase, setPhaseRaw] = useState("boot");
+  const setPhase = (p: string) => { if (VALID_PHASES.includes(p as typeof VALID_PHASES[number])) setPhaseRaw(p); };
   const [booted, setBooted] = useState(false);
   // showCont removed — admin controls all phase transitions
   const [tp, setTp] = useState<Record<string, TeamProgress>>({});

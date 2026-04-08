@@ -24,11 +24,14 @@ export default function StatsPage() {
         active = DEFAULT_EVENT_AGENT;
       }
       setEvent(active);
-      const s: Record<string, MissionStat[]> = {};
-      for (const t of active.teams) {
-        s[t.id] = await sGet<MissionStat[]>(`lynx-stats-${t.id}`, []) || [];
-      }
-      setStats(s);
+      // Load all team stats in parallel
+      const entries = await Promise.all(
+        active.teams.map(async (t) => {
+          const data = await sGet<MissionStat[]>(`lynx-stats-${t.id}`, []);
+          return [t.id, data || []] as [string, MissionStat[]];
+        })
+      );
+      setStats(Object.fromEntries(entries));
     };
     load();
     const iv = setInterval(load, 5000);
