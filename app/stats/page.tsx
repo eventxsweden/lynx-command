@@ -17,8 +17,12 @@ export default function StatsPage() {
 
   useEffect(() => {
     const load = async () => {
-      const active = await sGet<LynxEvent>("lynx-active-event", null);
-      if (!active) return;
+      let active = await sGet<LynxEvent>("lynx-active-event", null);
+      if (!active) {
+        // Fallback to default event if none active in storage
+        const { DEFAULT_EVENT_AGENT } = await import("@/lib/default-events");
+        active = DEFAULT_EVENT_AGENT;
+      }
       setEvent(active);
       const s: Record<string, MissionStat[]> = {};
       for (const t of active.teams) {

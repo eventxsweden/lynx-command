@@ -21,7 +21,7 @@ interface Props {
 export default function HQScreen({ event }: Props) {
   const [phase, setPhase] = useState("boot");
   const [booted, setBooted] = useState(false);
-  const [showCont, setShowCont] = useState(false);
+  // showCont removed — admin controls all phase transitions
   const [tp, setTp] = useState<Record<string, TeamProgress>>({});
   const [codeIn, setCodeIn] = useState("");
   const [fb, setFb] = useState<{ type: string } | null>(null);
@@ -30,7 +30,13 @@ export default function HQScreen({ event }: Props) {
   const theme = event.theme;
   const v = theme.vocabulary;
 
-  useEffect(() => { sSet("lynx-hq-state", { phase, timestamp: Date.now() }); }, [phase]);
+  // HQ does NOT write phase — admin is the single source of truth.
+  // On first load, write initial "boot" phase only if nothing exists yet.
+  useEffect(() => {
+    sGet<{ phase: string }>("lynx-hq-state", null).then((existing) => {
+      if (!existing) sSet("lynx-hq-state", { phase: "boot", timestamp: Date.now() });
+    });
+  }, []);
 
   useEffect(() => {
     const poll = async () => {
@@ -40,7 +46,7 @@ export default function HQScreen({ event }: Props) {
         p[t.id] = await sGet<TeamProgress>(`lynx-team-${t.id}`, { teamId: t.id, missionIndex: 0, currentMission: "", totalMissions: t.missions.length, allDone: false, finalDigit: t.finalDigit, timestamp: 0 });
       }
       setTp(p);
-      // Poll phase changes from admin
+      // Poll phase from admin (admin is sole writer)
       const hqState = await sGet<{ phase: string; timestamp: number }>("lynx-hq-state", null);
       if (hqState && hqState.phase !== phase) {
         setPhase(hqState.phase);
@@ -53,16 +59,14 @@ export default function HQScreen({ event }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.teams, phase]);
 
+  // Boot sound — phase change comes from admin
   useEffect(() => {
-    if (phase === "boot" && !booted) {
-      playBoot();
-      const t = setTimeout(() => { setBooted(true); setPhase("intro"); }, 3500);
-      return () => clearTimeout(t);
-    }
-  }, [phase, booted]);
+    if (phase === "boot") { playBoot(); setBooted(false); }
+    if (phase !== "boot") setBooted(true);
+  }, [phase]);
 
   useEffect(() => {
-    setShowCont(false); setCodeIn(""); setFb(null);
+    setCodeIn(""); setFb(null);
     if (phase === "intro") { playIncoming(); setTimeout(() => speak(theme.introSpeech), 800); }
     else if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
     else if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`), 800); }
@@ -70,12 +74,7 @@ export default function HQScreen({ event }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  useEffect(() => {
-    if (["intro", "dispatch", "converge"].includes(phase)) {
-      const t = setTimeout(() => setShowCont(true), 8000);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
+  // No showCont — admin controls transitions
 
   // Only Shift+R (reset) and Shift+F (fullscreen) on HQ — no Space/Arrow
   // Phase control is admin-only via the phase nav buttons
@@ -89,18 +88,12 @@ export default function HQScreen({ event }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const advPhase = () => {
-    const flow = ["boot", "intro", "activate", "dispatch", "active", "converge", "final_code", "complete"];
-    const i = flow.indexOf(phase);
-    if (i < flow.length - 1) setPhase(flow[i + 1]);
-  };
 
   const handleAct = useCallback(() => {
     if (codeIn === event.activationCode) {
       playUnlock(); setFb({ type: "success" });
-      setTimeout(() => speak("Aktiveringskod bekräftad."), 300);
-      if (fbT.current) clearTimeout(fbT.current);
-      fbT.current = setTimeout(() => { setFb(null); setPhase("dispatch"); }, 3000);
+      setTimeout(() => speak("Aktiveringskod bekräftad. Väntar på order."), 300);
+      // Don't auto-advance — admin clicks DISPATCH when ready
     } else {
       playError(); setFb({ type: "error" }); setCodeIn("");
       if (fbT.current) clearTimeout(fbT.current);
@@ -111,8 +104,8 @@ export default function HQScreen({ event }: Props) {
   const handleFinal = useCallback(() => {
     if (codeIn === event.finalCode) {
       playUnlock(); setFb({ type: "success" });
-      if (fbT.current) clearTimeout(fbT.current);
-      fbT.current = setTimeout(() => { setFb(null); setPhase("complete"); }, 3000);
+      setTimeout(() => speak(`${v.briefcase} upplåst!`), 300);
+      // Don't auto-advance — admin clicks KLAR when ready
     } else {
       playError(); setFb({ type: "error" }); setCodeIn("");
       if (fbT.current) clearTimeout(fbT.current);
@@ -141,7 +134,7 @@ export default function HQScreen({ event }: Props) {
 
   // ── INTRO ──
   if (phase === "intro") {
-    return <IntroPhase theme={theme} event={event} showCont={showCont} onNext={() => setPhase("activate")} />;
+    return <IntroPhase theme={theme} event={event} />;
   }
 
   // ── ACTIVATE ──
@@ -162,7 +155,7 @@ export default function HQScreen({ event }: Props) {
 
   // ── DISPATCH ──
   if (phase === "dispatch") {
-    return <DispatchPhase theme={theme} event={event} showCont={showCont} onNext={() => setPhase("active")} />;
+    return <DispatchPhase theme={theme} event={event} />;
   }
 
   // ── ACTIVE ──
@@ -216,8 +209,7 @@ export default function HQScreen({ event }: Props) {
       </div>
       {allDone && (
         <div style={{ marginTop: 16, textAlign: "center", animation: "fade-in 0.5s" }}>
-          <div style={{ fontSize: "clamp(0.7rem,1.3vw,0.95rem)", color: theme.successColor, letterSpacing: "0.15em", marginBottom: 10, fontFamily: FONT }}>ALLA TEAM KLARA</div>
-          <button onClick={() => setPhase("converge")} style={{ ...cBtn(theme.successColor) }}>SAMLA ALLA ▶</button>
+          <div style={{ fontSize: "clamp(0.7rem,1.3vw,0.95rem)", color: theme.successColor, letterSpacing: "0.15em", fontFamily: FONT }}>✓ ALLA TEAM KLARA — VÄNTAR PÅ ORDER</div>
         </div>
       )}
       {!allDone && <div style={{ fontSize: "clamp(0.5rem,0.85vw,0.7rem)", color: "#334455", marginTop: 12, fontFamily: FONT }}>Väntar på team...</div>}
@@ -228,7 +220,7 @@ export default function HQScreen({ event }: Props) {
 
   // ── CONVERGE ──
   if (phase === "converge") {
-    return <ConvergePhase theme={theme} event={event} showCont={showCont} onNext={() => setPhase("final_code")} />;
+    return <ConvergePhase theme={theme} event={event} />;
   }
 
   // ── FINAL CODE ──
@@ -270,7 +262,7 @@ export default function HQScreen({ event }: Props) {
 
 // Sub-components that use hooks at top level
 
-function IntroPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["theme"]; event: LynxEvent; showCont: boolean; onNext: () => void }) {
+function IntroPhase({ theme, event }: { theme: LynxEvent["theme"]; event: LynxEvent }) {
   const [t, d] = useTypewriter(theme.introSpeech, 28);
   const H = hqBase(theme.bgGradient);
   return (
@@ -290,7 +282,6 @@ function IntroPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["them
             </div>
           ))}
         </div>
-        {showCont && <button onClick={onNext} style={cBtn(theme.accentColor)}>ANGE AKTIVERINGSKOD ▶</button>}
       </div>
       <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
@@ -298,7 +289,7 @@ function IntroPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["them
   );
 }
 
-function DispatchPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["theme"]; event: LynxEvent; showCont: boolean; onNext: () => void }) {
+function DispatchPhase({ theme, event }: { theme: LynxEvent["theme"]; event: LynxEvent }) {
   const v = theme.vocabulary;
   const [t, d] = useTypewriter(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol — rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`, 24);
   const H = hqBase(theme.bgGradient);
@@ -319,7 +310,6 @@ function DispatchPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["t
             </div>
           ))}
         </div>
-        {showCont && <button onClick={onNext} style={cBtn("#ff9500")}>STARTA {v.mission} ▶</button>}
       </div>
       <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
@@ -327,7 +317,7 @@ function DispatchPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["t
   );
 }
 
-function ConvergePhase({ theme, event, showCont, onNext }: { theme: LynxEvent["theme"]; event: LynxEvent; showCont: boolean; onNext: () => void }) {
+function ConvergePhase({ theme, event }: { theme: LynxEvent["theme"]; event: LynxEvent }) {
   const v = theme.vocabulary;
   const [t, d] = useTypewriter(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`, 26);
   const H = hqBase(theme.bgGradient);
@@ -348,7 +338,6 @@ function ConvergePhase({ theme, event, showCont, onNext }: { theme: LynxEvent["t
             </div>
           ))}
         </div>
-        {showCont && <button onClick={onNext} style={{ ...cBtn("#ff6633") }}>ANGE SLUTKOD ▶</button>}
       </div>
       <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
