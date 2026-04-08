@@ -32,6 +32,7 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   const [editingAnswer, setEditingAnswer] = useState<{ teamId: string; mIdx: number } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [showLinks, setShowLinks] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const theme = event.theme;
   const v = theme.vocabulary;
@@ -129,7 +130,26 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
 
       {/* ═══ Phase Navigation — Sticky on mobile ═══ */}
       <div style={{ background: "rgba(15,22,30,0.95)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, position: "sticky", top: 0, zIndex: 40 }}>
-        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 8 }}>HQ-FAS: <span style={{ color: theme.accentColor, fontWeight: 700 }}>{hqState.phase?.toUpperCase()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a", letterSpacing: "0.12em" }}>HQ-FAS: <span style={{ color: theme.accentColor, fontWeight: 700 }}>{hqState.phase?.toUpperCase()}</span></div>
+          <button onClick={() => setShowGuide(!showGuide)} style={{ padding: "4px 10px", background: showGuide ? "rgba(221,168,68,0.15)" : "transparent", border: `1px solid ${showGuide ? "#dda844" : "#2a3a4a"}`, borderRadius: 4, color: showGuide ? "#dda844" : "#5a7a8a", fontSize: "clamp(0.55rem,1.1vw,0.7rem)", fontFamily: FONT, cursor: "pointer" }}>
+            ℹ️ Guide
+          </button>
+        </div>
+        {showGuide && (
+          <div style={{ background: "rgba(10,16,24,0.8)", border: "1px solid #dda84420", borderRadius: 8, padding: "12px 14px", marginBottom: 10, fontSize: "clamp(0.6rem,1.2vw,0.75rem)", lineHeight: 1.8, color: "#7a9aaa" }}>
+            <div style={{ color: "#dda844", fontWeight: 700, marginBottom: 6 }}>KALAS-FLÖDE — steg för steg:</div>
+            <div><span style={{ color: "#5a7a8a" }}>1.</span> <strong style={{ color: theme.accentColor }}>BOOT</strong> — Barnen samlas vid TV:n. Dramatisk uppstart.</div>
+            <div><span style={{ color: "#5a7a8a" }}>2.</span> <strong style={{ color: theme.accentColor }}>INTRO</strong> — Direktören talar. Bygger stämning.</div>
+            <div><span style={{ color: "#5a7a8a" }}>3.</span> <strong style={{ color: theme.accentColor }}>KOD</strong> — Barnen skriver aktiveringskoden ({event.activationCode}) på HQ.</div>
+            <div><span style={{ color: "#5a7a8a" }}>4.</span> <strong style={{ color: theme.accentColor }}>DISPATCH</strong> — &quot;Gå till era baser!&quot; Barnen springer iväg.</div>
+            <div><span style={{ color: "#5a7a8a" }}>5.</span> <strong style={{ color: theme.accentColor }}>AKTIV</strong> — Terminalerna går live! Barnen löser uppdrag.</div>
+            <div><span style={{ color: "#5a7a8a" }}>6.</span> <strong style={{ color: theme.accentColor }}>SAMLING</strong> — Alla tillbaka med sina kodsiffror.</div>
+            <div><span style={{ color: "#5a7a8a" }}>7.</span> <strong style={{ color: theme.accentColor }}>SLUTKOD</strong> — Barnen kombinerar siffrorna på HQ ({event.finalCode}).</div>
+            <div><span style={{ color: "#5a7a8a" }}>8.</span> <strong style={{ color: theme.accentColor }}>KLAR</strong> — Certifiering! Kalas klart.</div>
+            <div style={{ color: "#5a6a5a", marginTop: 6, borderTop: "1px solid #1a2530", paddingTop: 6, fontSize: "clamp(0.55rem,1vw,0.65rem)" }}>💡 Tryck på knapparna nedan för att styra HQ-skärmen i realtid.</div>
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
           {phases.map((p) => (
             <button key={p.id} onClick={() => setPhase(p.id)} style={{
