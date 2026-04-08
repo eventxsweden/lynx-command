@@ -19,7 +19,7 @@ interface Props {
   vocabulary: { mission: string; station: string; hq: string; agent: string; briefcase: string };
 }
 
-type TerminalPhase = "waiting" | "loading" | "briefing" | "input" | "verifying" | "transmitting" | "confirmed" | "transition" | "done" | "codeReveal";
+type TerminalPhase = "waiting" | "loading" | "briefing" | "input" | "verifying" | "transmitting" | "confirmed" | "done" | "codeReveal";
 
 export default function TeamTerminal({ team, vocabulary: v }: Props) {
   const [active, setActive] = useState(false);
@@ -138,10 +138,11 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
               playCrescendo();
               setTermPhase("codeReveal");
             } else {
-              // Normal transition — loading next mission
+              // Normal transition — increment mission index THEN show loading
               playStaticBurst();
-              setTermPhase("transition");
               setInput("");
+              setMIdx((i) => i + 1);
+              setTermPhase("loading");
             }
           }, 2500);
         }, 1000);
@@ -155,12 +156,6 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
       fbTimer.current = setTimeout(() => setErrorMsg(null), 2000);
     }
   }, [input, mission, mIdx, team, missionStartTime, attempts, hintsUsed]);
-
-  const advanceToNextMission = useCallback(() => {
-    setInput("");
-    setMIdx((i) => i + 1);
-    setTermPhase("loading");
-  }, []);
 
   const finishAllMissions = useCallback(() => {
     setAllDone(true);
@@ -231,7 +226,7 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
   );
 
   // ── Mission Loading Transition ──
-  if (termPhase === "loading" || termPhase === "transition") return (
+  if (termPhase === "loading") return (
     <div style={tBase()}>
       {msgOverlay}
       <MissionLoadSequence title={mission.title} onComplete={() => setTermPhase("briefing")} color={team.color} />
@@ -371,29 +366,20 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
       {/* Error message */}
       {errorMsg && <div style={{ fontSize: "clamp(0.65rem,1.1vw,0.85rem)", color: "#ff4444", letterSpacing: "0.1em", animation: "shake 0.4s ease-out", marginBottom: 8, fontFamily: FONT }}>{errorMsg}</div>}
 
-      {/* Briefing */}
+      {/* Briefing — typewriter text + confirm button */}
       {termPhase === "briefing" && !errorMsg && (
-        <BriefingText text={mission.briefing} teamColor={team.color} onDone={() => setTermPhase("input")} />
+        <BriefingWithConfirm text={mission.briefing} teamColor={team.color} onConfirm={() => setTermPhase("input")} vocabulary={v} />
       )}
 
       {/* Input area with TargetingFrame */}
-      {termPhase === "input" && !errorMsg && (
-        <TargetingFrame color={team.color}>
-          <Numpad value={input} onChange={(fn) => setInput(fn)} onSubmit={handleSubmit} maxLen={mission.answerLen} disabled={false} accentColor={team.color} />
-        </TargetingFrame>
-      )}
-
-      {/* Input without targeting frame on error (show numpad again) */}
-      {termPhase === "input" && errorMsg && (
-        <Numpad value={input} onChange={(fn) => setInput(fn)} onSubmit={handleSubmit} maxLen={mission.answerLen} disabled={false} accentColor={team.color} />
-      )}
-
-      {/* Hints + re-read (only in input phase) */}
       {termPhase === "input" && (
         <>
+          <TargetingFrame color={team.color}>
+            <Numpad value={input} onChange={(fn) => setInput(fn)} onSubmit={handleSubmit} maxLen={mission.answerLen} disabled={false} accentColor={team.color} />
+          </TargetingFrame>
           <HintSystem hints={mission.hints} teamColor={team.color} missionId={mission.id} />
-          <button onClick={() => speak(mission.briefing)} style={{ marginTop: 6, padding: "6px 16px", background: "transparent", border: "1px solid #1a2a3a", borderRadius: 4, color: "#445566", fontSize: "clamp(0.45rem,0.8vw,0.55rem)", fontFamily: FONT, cursor: "pointer" }}>
-            🔊 LÄS UPP IGEN
+          <button onClick={() => speak(mission.briefing)} style={{ marginTop: 6, padding: "8px 18px", background: "transparent", border: "1px solid #1a2a3a", borderRadius: 6, color: "#556677", fontSize: "clamp(0.5rem,0.9vw,0.65rem)", fontFamily: FONT, cursor: "pointer", touchAction: "manipulation" }}>
+            🔊 LÄS UPP UPPDRAGET
           </button>
         </>
       )}
@@ -405,18 +391,33 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
   );
 }
 
-function BriefingText({ text, teamColor, onDone }: { text: string; teamColor: string; onDone: () => void }) {
+function BriefingWithConfirm({ text, teamColor, onConfirm, vocabulary }: { text: string; teamColor: string; onConfirm: () => void; vocabulary: { mission: string; station: string; hq: string; agent: string; briefcase: string } }) {
   const [typedBrief, briefDone] = useTypewriter(text, 22);
+
+  // Also speak the briefing
   useEffect(() => {
-    if (briefDone) {
-      const t = setTimeout(onDone, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [briefDone, onDone]);
+    speak(text, 0.92);
+  }, [text]);
+
   return (
-    <div style={{ maxWidth: 520, fontSize: "clamp(0.7rem,1.3vw,0.95rem)", lineHeight: 1.7, textAlign: "center", color: "#85a0b5", minHeight: "3em", marginBottom: 4, fontFamily: FONT }}>
-      {typedBrief}
-      {!briefDone && <span style={{ color: teamColor, animation: "blink 0.6s infinite" }}>▊</span>}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 560 }}>
+      <div style={{ fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#8aa0b5", minHeight: "3em", fontFamily: FONT, padding: "0 12px" }}>
+        {typedBrief}
+        {!briefDone && <span style={{ color: teamColor, animation: "blink 0.6s infinite" }}>▊</span>}
+      </div>
+      {briefDone && (
+        <button onClick={onConfirm} style={{
+          padding: "clamp(12px,2vw,18px) clamp(28px,6vw,50px)",
+          background: `${teamColor}12`, border: `2px solid ${teamColor}`,
+          borderRadius: 10, color: teamColor,
+          fontSize: "clamp(0.75rem,1.4vw,0.95rem)", fontFamily: FONT,
+          letterSpacing: "0.12em", cursor: "pointer", fontWeight: 700,
+          animation: "fade-in 0.5s", touchAction: "manipulation",
+          textShadow: `0 0 10px ${teamColor}40`,
+        }}>
+          UPPFATTAT — STARTA {vocabulary.mission} ▶
+        </button>
+      )}
     </div>
   );
 }
