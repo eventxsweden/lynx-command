@@ -156,6 +156,17 @@ export default function HQScreen({ event }: Props) {
   // ── ACTIVE ──
   if (phase === "active") return (
     <div style={H}>
+      {/* Top status bar */}
+      <div style={{ position: "absolute", top: 12, left: 20, right: 20, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+        <div style={{ fontSize: "clamp(0.4rem,0.7vw,0.55rem)", color: theme.accentColor, opacity: 0.4, fontFamily: FONT, letterSpacing: "0.15em" }}>
+          {v.agent}S IN FIELD: {event.teams.length * 4}
+          <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: theme.accentColor, marginLeft: 6, animation: "blink 2s infinite" }} />
+        </div>
+        <div style={{ fontSize: "clamp(0.4rem,0.7vw,0.55rem)", color: event.timerMinutes && event.timerMinutes <= 5 ? "#ff3300" : "#4a6a7a", opacity: 0.5, fontFamily: FONT, letterSpacing: "0.15em" }}>
+          THREAT LEVEL: {allDone ? "RESOLVED" : event.timerMinutes && event.timerMinutes <= 5 ? "ELEVATED" : "STANDARD"}
+        </div>
+      </div>
+
       <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.accentColor, opacity: 0.45, fontFamily: FONT }}>{v.mission} AKTIVA</div>
       <h1 style={{ fontSize: "clamp(1.3rem,3vw,2.5rem)", color: theme.accentColor, fontWeight: 700, textShadow: `0 0 20px ${theme.accentColor}40`, margin: "0 0 6px", fontFamily: FONT }}>OPERATIV STATUS</h1>
       {event.timerMinutes && <Timer minutes={event.timerMinutes} accentColor={theme.accentColor} />}
@@ -172,7 +183,10 @@ export default function HQScreen({ event }: Props) {
                   <span style={{ fontSize: "clamp(1.2rem,2.5vw,1.8rem)", color: team.color }}>{team.symbol}</span>
                   <span style={{ fontSize: "clamp(0.7rem,1.2vw,0.9rem)", color: team.color, fontWeight: 700, fontFamily: FONT }}>{team.name}</span>
                 </div>
-                {done && <span style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", color: theme.successColor, fontFamily: FONT }}>✓ KLAR</span>}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {done && <span style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", color: theme.successColor, fontFamily: FONT }}>✓ KLAR</span>}
+                  {!done && <span style={{ fontSize: "clamp(0.35rem,0.6vw,0.45rem)", color: "#ff3300", fontFamily: FONT, animation: "blink 2s infinite", display: "flex", alignItems: "center", gap: 3 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff3300" }} />REC</span>}
+                </div>
               </div>
               <div style={{ height: 6, background: "rgba(20,30,40,0.6)", borderRadius: 3, overflow: "hidden", marginBottom: 10 }}>
                 <div style={{ height: "100%", borderRadius: 3, background: done ? theme.successColor : team.color, width: `${done ? 100 : (mi / total) * 100}%`, transition: "width 0.8s", boxShadow: `0 0 8px ${done ? theme.successColor + "80" : team.color + "80"}` }} />

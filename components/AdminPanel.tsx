@@ -6,12 +6,12 @@ import { FONT } from "@/lib/styles";
 import EventBuilder from "./EventBuilder";
 
 const PRESET_MESSAGES: PresetMessage[] = [
-  { label: "⏰ Skynda på", text: "Direktören meddelar: Tiden rinner ut, agenter. Öka tempot!", speech: "Tiden rinner ut, agenter. Öka tempot." },
+  { label: "⏰ Skynda", text: "Direktören meddelar: Tiden rinner ut, agenter. Öka tempot!", speech: "Tiden rinner ut, agenter. Öka tempot." },
   { label: "💪 Bra jobbat", text: "Direktören meddelar: Bra insats, agenter. Fortsätt så!", speech: "Bra insats, agenter. Fortsätt så." },
   { label: "🔍 Titta noga", text: "Direktören meddelar: Svaret finns framför er. Titta en gång till.", speech: "Svaret finns framför er. Titta en gång till." },
   { label: "🤝 Samarbeta", text: "Direktören meddelar: Alla måste hjälpas åt!", speech: "Alla i teamet måste hjälpas åt." },
-  { label: "📍 Fel område", text: "Direktören meddelar: Ni söker i fel område. Kolla efter er symbol!", speech: "Ni söker i fel område." },
-  { label: "🔇 Tystnad", text: "⚠ OPERATIV VARNING: Ljudnivån är för hög.", speech: "Operativ varning. Ljudnivån är för hög." },
+  { label: "📍 Fel zon", text: "Direktören meddelar: Ni söker i fel område. Kolla efter er symbol!", speech: "Ni söker i fel område." },
+  { label: "🔇 Tyst!", text: "⚠ OPERATIV VARNING: Ljudnivån är för hög.", speech: "Operativ varning. Ljudnivån är för hög." },
 ];
 
 interface Props {
@@ -65,8 +65,8 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
     const mission = team?.missions[mi];
     if (!mission) return;
     const hint = mission.hints[0];
-    sendMsg(`💡 Ledtråd från ${v.hq}: ${hint.text}`, hint.text, tid);
-  }, [teamProgress, event.teams, sendMsg, v.hq]);
+    sendMsg(`💡 Ledtråd: ${hint.text}`, hint.text, tid);
+  }, [teamProgress, event.teams, sendMsg]);
 
   const setPhase = (phase: string) => {
     sSet("lynx-hq-state", { phase, timestamp: Date.now() });
@@ -80,7 +80,6 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
       team.missions[mIdx].answer = newAnswer;
       team.missions[mIdx].answerLen = newAnswer.length;
       onEventChange(updated);
-      // Save to storage
       sSet("lynx-active-event", updated);
       const evts = allEvents.map((e) => (e.id === updated.id ? updated : e));
       sSet("lynx-events", evts);
@@ -90,9 +89,10 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   };
 
   const phases = [
-    { id: "boot", label: "BOOT" }, { id: "intro", label: "INTRO" }, { id: "activate", label: "KODEN" },
-    { id: "dispatch", label: "DISPATCH" }, { id: "active", label: "AKTIV" }, { id: "converge", label: "SAMLING" },
-    { id: "final_code", label: "SLUTKOD" }, { id: "complete", label: "KLAR" },
+    { id: "boot", label: "BOOT", icon: "🔄" }, { id: "intro", label: "INTRO", icon: "📢" },
+    { id: "activate", label: "KOD", icon: "🔐" }, { id: "dispatch", label: "DISPATCH", icon: "🚀" },
+    { id: "active", label: "AKTIV", icon: "▶" }, { id: "converge", label: "SAMLING", icon: "📍" },
+    { id: "final_code", label: "SLUTKOD", icon: "🎯" }, { id: "complete", label: "KLAR", icon: "✓" },
   ];
 
   const allDone = event.teams.every((t) => teamProgress[t.id]?.allDone);
@@ -102,47 +102,46 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   }
 
   return (
-    <div style={{ width: "100vw", minHeight: "100vh", background: "#080c12", fontFamily: FONT, color: "#c0d0e0", padding: 12, overflowY: "auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, padding: "0 4px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3300", animation: "blink 1.5s infinite" }} />
-          <span style={{ fontSize: "0.7rem", letterSpacing: "0.25em", color: "#ff3300" }}>ADMIN KONTROLL</span>
+    <div style={{ width: "100vw", minHeight: "100vh", background: "#080c12", fontFamily: FONT, color: "#c0d0e0", padding: "16px", overflowY: "auto" }}>
+      {/* ═══ Header ═══ */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff3300", animation: "blink 1.5s infinite" }} />
+          <span style={{ fontSize: "clamp(0.85rem,2vw,1rem)", letterSpacing: "0.2em", color: "#ff3300", fontWeight: 700 }}>ADMIN</span>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button onClick={() => setShowBuilder(true)} style={headerBtn()}>📋 EVENT</button>
-          <span style={{ fontSize: "0.5rem", color: "#334455" }}>{theme.orgName} v4</span>
-        </div>
+        <button onClick={() => setShowBuilder(true)} style={{ padding: "8px 16px", background: "rgba(20,30,40,0.8)", border: `1px solid ${theme.accentColor}40`, borderRadius: 6, color: theme.accentColor, fontSize: "clamp(0.7rem,1.5vw,0.85rem)", fontFamily: FONT, cursor: "pointer", fontWeight: 700 }}>📋 EVENT</button>
       </div>
 
-      {/* Active event indicator */}
-      <div style={{ background: `${theme.accentColor}08`, border: `1px solid ${theme.accentColor}20`, borderRadius: 8, padding: "8px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {/* ═══ Active Event Banner ═══ */}
+      <div style={{ background: `${theme.accentColor}08`, border: `1px solid ${theme.accentColor}25`, borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: "0.45rem", color: "#4a6a7a", letterSpacing: "0.15em" }}>AKTIVT EVENT</div>
-          <div style={{ fontSize: "0.65rem", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
+          <div style={{ fontSize: "clamp(0.55rem,1.1vw,0.65rem)", color: "#5a7a8a", letterSpacing: "0.15em" }}>AKTIVT EVENT</div>
+          <div style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
         </div>
-        <div style={{ fontSize: "0.45rem", color: "#4a6a7a" }}>{event.theme.name}</div>
+        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a" }}>{event.theme.name}</div>
       </div>
 
-      {/* Phase nav */}
-      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-        <div style={{ fontSize: "0.5rem", color: "#4a6a7a", letterSpacing: "0.15em", marginBottom: 6 }}>HQ-FAS: {hqState.phase?.toUpperCase() || "?"}</div>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+      {/* ═══ Phase Navigation ═══ */}
+      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 8 }}>HQ-FAS: <span style={{ color: theme.accentColor }}>{hqState.phase?.toUpperCase()}</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
           {phases.map((p) => (
             <button key={p.id} onClick={() => setPhase(p.id)} style={{
-              padding: "5px 8px", border: `1px solid ${hqState.phase === p.id ? theme.accentColor : "#1a2a3a"}`,
-              borderRadius: 4, background: hqState.phase === p.id ? `${theme.accentColor}15` : "rgba(10,16,24,0.6)",
-              color: hqState.phase === p.id ? theme.accentColor : "#4a6a7a", fontSize: "0.5rem",
-              fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.05em",
+              padding: "8px 4px", border: `1px solid ${hqState.phase === p.id ? theme.accentColor : "#1a2a3a"}`,
+              borderRadius: 6, background: hqState.phase === p.id ? `${theme.accentColor}18` : "rgba(10,16,24,0.6)",
+              color: hqState.phase === p.id ? theme.accentColor : "#5a7a8a",
+              fontSize: "clamp(0.6rem,1.2vw,0.75rem)", fontFamily: "inherit", cursor: "pointer",
+              fontWeight: hqState.phase === p.id ? 700 : 400, textAlign: "center",
             }}>
+              <div style={{ fontSize: "clamp(0.85rem,1.6vw,1rem)" }}>{p.icon}</div>
               {p.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Team progress cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+      {/* ═══ Team Progress Cards ═══ */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
         {event.teams.map((team) => {
           const tp = teamProgress[team.id] || {};
           const mi = tp.missionIndex || 0;
@@ -150,113 +149,149 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
           const done = tp.allDone;
           const currentMission = team.missions[mi];
           return (
-            <div key={team.id} style={{ background: "rgba(15,22,30,0.8)", border: `1px solid ${done ? "#33ff8830" : team.color + "25"}`, borderRadius: 8, padding: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: "1.1rem", color: team.color }}>{team.symbol}</span>
-                  <span style={{ fontSize: "0.7rem", color: team.color, fontWeight: 700, letterSpacing: "0.1em" }}>{team.name}</span>
-                  {done && <span style={{ fontSize: "0.5rem", color: "#33ff88", background: "rgba(51,255,136,0.1)", padding: "2px 6px", borderRadius: 3 }}>✓ KLAR</span>}
+            <div key={team.id} style={{ background: "rgba(15,22,30,0.8)", border: `2px solid ${done ? "#33ff8840" : team.color + "30"}`, borderRadius: 10, padding: "14px 16px" }}>
+              {/* Team header */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: "clamp(1.2rem,2.5vw,1.5rem)", color: team.color }}>{team.symbol}</span>
+                  <span style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: team.color, fontWeight: 700, letterSpacing: "0.08em" }}>{team.name}</span>
+                  {done && <span style={{ fontSize: "clamp(0.6rem,1.1vw,0.7rem)", color: "#33ff88", background: "rgba(51,255,136,0.1)", padding: "3px 8px", borderRadius: 4, fontWeight: 700 }}>✓ KLAR</span>}
                 </div>
-                <span style={{ fontSize: "0.55rem", color: "#4a6a7a" }}>{done ? `SIFFRA: ${tp.finalDigit}` : `${mi}/${total}`}</span>
+                <span style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: done ? "#33ff88" : "#5a7a8a", fontWeight: 700 }}>{done ? `SIFFRA: ${tp.finalDigit}` : `${mi}/${total}`}</span>
               </div>
-              <div style={{ height: 4, background: "rgba(20,30,40,0.6)", borderRadius: 2, overflow: "hidden", marginBottom: 8 }}>
-                <div style={{ height: "100%", borderRadius: 2, background: done ? "#33ff88" : team.color, width: `${done ? 100 : (mi / total) * 100}%`, transition: "width 0.8s ease", boxShadow: `0 0 6px ${done ? "#33ff8860" : team.color + "60"}` }} />
+
+              {/* Progress bar */}
+              <div style={{ height: 6, background: "rgba(20,30,40,0.6)", borderRadius: 3, overflow: "hidden", marginBottom: 10 }}>
+                <div style={{ height: "100%", borderRadius: 3, background: done ? "#33ff88" : team.color, width: `${done ? 100 : (mi / total) * 100}%`, transition: "width 0.8s ease", boxShadow: `0 0 8px ${done ? "#33ff8880" : team.color + "80"}` }} />
               </div>
-              <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
+
+              {/* Mission dots */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                 {Array.from({ length: total }).map((_, i) => (
                   <div key={i} style={{
-                    flex: 1, height: 20, borderRadius: 4,
-                    background: i < mi || done ? "rgba(51,255,136,0.15)" : i === mi && !done ? `${team.accent}0.12)` : "rgba(15,22,30,0.5)",
-                    border: `1px solid ${i < mi || done ? "#33ff8830" : i === mi && !done ? team.color + "40" : "#1a2530"}`,
+                    flex: 1, height: 28, borderRadius: 6,
+                    background: i < mi || done ? "rgba(51,255,136,0.12)" : i === mi && !done ? `${team.accent}0.1)` : "rgba(15,22,30,0.5)",
+                    border: `1px solid ${i < mi || done ? "#33ff8830" : i === mi && !done ? team.color + "50" : "#1a2530"}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "0.45rem", color: i < mi || done ? "#33ff88" : i === mi && !done ? team.color : "#2a3a4a",
+                    fontSize: "clamp(0.6rem,1.1vw,0.75rem)", color: i < mi || done ? "#33ff88" : i === mi && !done ? team.color : "#2a3a4a", fontWeight: 700,
                   }}>
                     {i < mi || done ? "✓" : i === mi && !done ? "▶" : `${i + 1}`}
                   </div>
                 ))}
               </div>
+
+              {/* Current mission + live answer editing */}
               {!done && currentMission && (
-                <div style={{ fontSize: "0.5rem", color: "#5a7a8a", marginBottom: 6 }}>
-                  Nu: {currentMission.icon} {currentMission.title} — Svar:{" "}
+                <div style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#6a8a9a", marginBottom: 8, padding: "6px 10px", background: "rgba(10,16,24,0.5)", borderRadius: 6 }}>
+                  <span style={{ color: "#8aa0b0" }}>Nu:</span> {currentMission.icon} {currentMission.title}
+                  <span style={{ color: "#4a6a7a" }}> — Svar: </span>
                   {editingAnswer?.teamId === team.id && editingAnswer?.mIdx === mi ? (
-                    <span>
-                      <input value={editValue} onChange={(e) => setEditValue(e.target.value)} style={{ width: 60, background: "#0a1020", border: "1px solid " + team.color, color: team.color, fontFamily: FONT, fontSize: "0.5rem", padding: "2px 4px", borderRadius: 3 }} />
-                      <button onClick={() => updateAnswer(team.id, mi, editValue)} style={{ ...smallBtn("#2a4a4a"), marginLeft: 4 }}>✓</button>
-                      <button onClick={() => setEditingAnswer(null)} style={{ ...smallBtn("#4a2a2a"), marginLeft: 2 }}>✕</button>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <input value={editValue} onChange={(e) => setEditValue(e.target.value)} style={{ width: 70, background: "#0a1020", border: `1px solid ${team.color}`, color: team.color, fontFamily: FONT, fontSize: "clamp(0.65rem,1.3vw,0.8rem)", padding: "3px 6px", borderRadius: 4 }} autoFocus />
+                      <button onClick={() => updateAnswer(team.id, mi, editValue)} style={qBtn("#33ff88")}>✓</button>
+                      <button onClick={() => setEditingAnswer(null)} style={qBtn("#ff5555")}>✕</button>
                     </span>
                   ) : (
-                    <span onClick={() => { setEditingAnswer({ teamId: team.id, mIdx: mi }); setEditValue(currentMission.answer); }} style={{ color: team.color, cursor: "pointer", borderBottom: "1px dashed " + team.color + "40" }}>
+                    <span onClick={() => { setEditingAnswer({ teamId: team.id, mIdx: mi }); setEditValue(currentMission.answer); }} style={{ color: team.color, cursor: "pointer", borderBottom: `1px dashed ${team.color}50`, fontWeight: 700, fontSize: "clamp(0.75rem,1.5vw,0.9rem)" }}>
                       {currentMission.answer}
                     </span>
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", gap: 4 }}>
-                <button onClick={() => pushHint(team.id)} disabled={done} style={smallBtn(done ? "#1a2530" : "#2a4a4a")}>💡 Ledtråd</button>
-                <button onClick={() => sendMsg(`Skynda på, ${team.name}!`, `Skynda på, ${team.name}`, team.id)} disabled={done} style={smallBtn(done ? "#1a2530" : "#4a3a2a")}>⏰ Skynda</button>
-                <button onClick={() => sendMsg(`Bra jobbat, Team ${team.name}!`, `Bra jobbat, Team ${team.name}`, team.id)} style={smallBtn("#2a3a4a")}>💪 Pep</button>
+
+              {/* Quick actions — larger touch targets */}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => pushHint(team.id)} disabled={done} style={actionBtn(done ? "#1a2530" : "#2a5a4a", done)}>💡 Ledtråd</button>
+                <button onClick={() => sendMsg(`Skynda på, ${team.name}!`, `Skynda på, ${team.name}`, team.id)} disabled={done} style={actionBtn(done ? "#1a2530" : "#5a4a2a", done)}>⏰ Skynda</button>
+                <button onClick={() => sendMsg(`Bra jobbat, Team ${team.name}!`, `Bra jobbat, Team ${team.name}`, team.id)} style={actionBtn("#2a3a4a", false)}>💪 Pep</button>
               </div>
             </div>
           );
         })}
       </div>
 
+      {/* ═══ All Done Banner ═══ */}
       {allDone && (
-        <div style={{ background: "rgba(51,255,136,0.05)", border: "1px solid #33ff8830", borderRadius: 8, padding: 12, marginBottom: 10, textAlign: "center" }}>
-          <div style={{ fontSize: "0.7rem", color: "#33ff88", letterSpacing: "0.15em" }}>✓ ALLA TEAM KLARA</div>
-          <div style={{ fontSize: "0.5rem", color: "#5a8a6a", marginTop: 4 }}>
-            Siffror: {event.teams.map((t) => `${t.symbol} ${t.finalDigit}`).join("  ")}
+        <div style={{ background: "rgba(51,255,136,0.06)", border: "2px solid #33ff8840", borderRadius: 10, padding: 16, marginBottom: 14, textAlign: "center" }}>
+          <div style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: "#33ff88", letterSpacing: "0.15em", fontWeight: 700 }}>✓ ALLA TEAM KLARA</div>
+          <div style={{ fontSize: "clamp(0.7rem,1.4vw,0.85rem)", color: "#5a8a6a", marginTop: 6 }}>
+            Siffror: {event.teams.map((t) => `${t.symbol} ${t.finalDigit}`).join("  •  ")}
+          </div>
+          <div style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#5a8a6a", marginTop: 4 }}>
+            Slutkod: <span style={{ color: "#ff8844", fontWeight: 700, fontSize: "clamp(0.85rem,1.8vw,1.1rem)" }}>{event.finalCode}</span>
           </div>
         </div>
       )}
 
-      {/* Message center */}
-      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 8, padding: 12, marginBottom: 10 }}>
-        <div style={{ fontSize: "0.55rem", color: "#4a6a7a", letterSpacing: "0.15em", marginBottom: 8 }}>MEDDELANDECENTRAL</div>
-        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-          <button onClick={() => setSelectedTeam("all")} style={teamSelBtn("all", selectedTeam, "#8899aa")}>📢 ALLA</button>
+      {/* ═══ Message Center ═══ */}
+      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "14px 16px", marginBottom: 14 }}>
+        <div style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>MEDDELANDECENTRAL</div>
+
+        {/* Target selector */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+          <button onClick={() => setSelectedTeam("all")} style={targetBtn("all", selectedTeam, "#8899aa")}>📢 ALLA</button>
           {event.teams.map((t) => (
-            <button key={t.id} onClick={() => setSelectedTeam(t.id)} style={teamSelBtn(t.id, selectedTeam, t.color)}>{t.symbol} {t.name}</button>
+            <button key={t.id} onClick={() => setSelectedTeam(t.id)} style={targetBtn(t.id, selectedTeam, t.color)}>{t.symbol} {t.name}</button>
           ))}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+
+        {/* Preset messages — larger buttons */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
           {PRESET_MESSAGES.map((pm, i) => (
-            <button key={i} onClick={() => sendMsg(pm.text, pm.speech, selectedTeam)} style={{ padding: "6px 10px", background: "rgba(20,30,40,0.6)", border: "1px solid #2a3a4a", borderRadius: 4, color: "#7a9aaa", fontSize: "0.5rem", fontFamily: "inherit", cursor: "pointer" }}>
+            <button key={i} onClick={() => sendMsg(pm.text, pm.speech, selectedTeam)} style={{
+              padding: "10px 8px", background: "rgba(20,30,40,0.6)", border: "1px solid #2a3a4a",
+              borderRadius: 6, color: "#8aa0b0", fontSize: "clamp(0.65rem,1.3vw,0.8rem)",
+              fontFamily: "inherit", cursor: "pointer", textAlign: "center",
+              touchAction: "manipulation",
+            }}>
               {pm.label}
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          <input value={customMsg} onChange={(e) => setCustomMsg(e.target.value)} placeholder="Skriv eget meddelande..." style={{ flex: 1, padding: "8px 10px", background: "rgba(10,16,24,0.8)", border: "1px solid #2a3a4a", borderRadius: 4, color: "#a0b8c8", fontSize: "0.6rem", fontFamily: "inherit", outline: "none" }}
+
+        {/* Custom message */}
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={customMsg} onChange={(e) => setCustomMsg(e.target.value)} placeholder="Skriv eget meddelande..." style={{
+            flex: 1, padding: "10px 12px", background: "rgba(10,16,24,0.8)",
+            border: "1px solid #2a3a4a", borderRadius: 6, color: "#a0b8c8",
+            fontSize: "clamp(0.75rem,1.5vw,0.9rem)", fontFamily: "inherit", outline: "none",
+          }}
             onKeyDown={(e) => { if (e.key === "Enter" && customMsg.trim()) { sendMsg(customMsg, customMsg, selectedTeam); setCustomMsg(""); } }}
           />
-          <button onClick={() => { if (customMsg.trim()) { sendMsg(customMsg, customMsg, selectedTeam); setCustomMsg(""); } }} style={{ padding: "8px 14px", background: `${theme.accentColor}12`, border: `1px solid ${theme.accentColor}40`, borderRadius: 4, color: theme.accentColor, fontSize: "0.55rem", fontFamily: "inherit", cursor: "pointer" }}>SKICKA</button>
+          <button onClick={() => { if (customMsg.trim()) { sendMsg(customMsg, customMsg, selectedTeam); setCustomMsg(""); } }} style={{
+            padding: "10px 18px", background: `${theme.accentColor}12`, border: `1px solid ${theme.accentColor}40`,
+            borderRadius: 6, color: theme.accentColor, fontSize: "clamp(0.7rem,1.4vw,0.85rem)",
+            fontFamily: "inherit", cursor: "pointer", fontWeight: 700,
+          }}>SKICKA</button>
         </div>
-        {sentConfirm && <div style={{ marginTop: 6, fontSize: "0.5rem", color: "#33ff88", animation: "fade-in 0.3s ease-out" }}>✓ Meddelande skickat till {sentConfirm}</div>}
+        {sentConfirm && <div style={{ marginTop: 8, fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#33ff88", animation: "fade-in 0.3s ease-out" }}>✓ Skickat till {sentConfirm}</div>}
       </div>
 
-      {/* Cheat sheet */}
-      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 8, padding: 12 }}>
-        <button onClick={() => setShowCodes(!showCodes)} style={{ width: "100%", padding: "6px", background: "transparent", border: "1px solid #2a3a4a", borderRadius: 4, color: "#4a6a7a", fontSize: "0.55rem", fontFamily: "inherit", cursor: "pointer" }}>
+      {/* ═══ Cheat Sheet ═══ */}
+      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "14px 16px" }}>
+        <button onClick={() => setShowCodes(!showCodes)} style={{
+          width: "100%", padding: "10px", background: "transparent", border: "1px solid #2a3a4a",
+          borderRadius: 6, color: "#5a7a8a", fontSize: "clamp(0.7rem,1.4vw,0.85rem)",
+          fontFamily: "inherit", cursor: "pointer", fontWeight: 700,
+        }}>
           {showCodes ? "▼ DÖLJ FACIT" : "▶ VISA FACIT (alla svar)"}
         </button>
         {showCodes && (
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 12 }}>
             {event.teams.map((team) => (
-              <div key={team.id} style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: "0.55rem", color: team.color, fontWeight: 700, marginBottom: 4 }}>{team.symbol} {team.name} (slutsiffra: {team.finalDigit})</div>
+              <div key={team.id} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: "clamp(0.7rem,1.4vw,0.85rem)", color: team.color, fontWeight: 700, marginBottom: 6 }}>{team.symbol} {team.name} — slutsiffra: <span style={{ fontSize: "clamp(0.85rem,1.8vw,1.1rem)" }}>{team.finalDigit}</span></div>
                 {team.missions.map((m, i) => (
-                  <div key={i} style={{ fontSize: "0.5rem", color: "#5a7a8a", padding: "2px 0" }}>
-                    {i + 1}. {m.icon} {m.title}: <span style={{ color: "#8aaa9a", fontWeight: 700 }}>{m.answer}</span> ({m.answerLen} siffror)
+                  <div key={i} style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#6a8a9a", padding: "4px 0", display: "flex", justifyContent: "space-between" }}>
+                    <span>{i + 1}. {m.icon} {m.title}</span>
+                    <span style={{ color: "#8aaa9a", fontWeight: 700, fontSize: "clamp(0.75rem,1.5vw,0.9rem)" }}>{m.answer}</span>
                   </div>
                 ))}
               </div>
             ))}
-            <div style={{ fontSize: "0.5rem", color: "#5a7a8a", marginTop: 4, borderTop: "1px solid #1a2a3a", paddingTop: 6 }}>
-              Slutkod ({v.briefcase.toLowerCase()}): <span style={{ color: "#ff6633", fontWeight: 700 }}>{event.finalCode}</span>
-            </div>
-            <div style={{ fontSize: "0.5rem", color: "#5a7a8a" }}>
-              Aktiveringskod: <span style={{ color: theme.accentColor, fontWeight: 700 }}>{event.activationCode}</span>
+            <div style={{ fontSize: "clamp(0.7rem,1.4vw,0.85rem)", color: "#5a7a8a", marginTop: 8, borderTop: "1px solid #1a2a3a", paddingTop: 10 }}>
+              Slutkod: <span style={{ color: "#ff6633", fontWeight: 700, fontSize: "clamp(0.85rem,1.8vw,1.1rem)" }}>{event.finalCode}</span>
+              <span style={{ color: "#3a5a6a", marginLeft: 16 }}>Aktiveringskod: <span style={{ color: theme.accentColor, fontWeight: 700 }}>{event.activationCode}</span></span>
             </div>
           </div>
         )}
@@ -265,15 +300,26 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   );
 }
 
-function headerBtn() {
-  return { padding: "4px 10px", background: "rgba(20,30,40,0.8)", border: "1px solid #2a3a4a", borderRadius: 4, color: "#7a9aaa", fontSize: "0.55rem", fontFamily: FONT, cursor: "pointer" } as const;
+function qBtn(color: string) {
+  return { padding: "4px 10px", background: `${color}15`, border: `1px solid ${color}40`, borderRadius: 4, color, fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" } as const;
 }
 
-function smallBtn(borderColor: string) {
-  return { padding: "4px 8px", background: "rgba(10,16,24,0.6)", border: `1px solid ${borderColor}`, borderRadius: 3, color: "#6a8a9a", fontSize: "0.45rem", fontFamily: FONT, cursor: "pointer" } as const;
+function actionBtn(borderColor: string, disabled: boolean) {
+  return {
+    flex: 1, padding: "8px 6px", background: "rgba(10,16,24,0.6)", border: `1px solid ${borderColor}`,
+    borderRadius: 6, color: disabled ? "#2a3a4a" : "#7a9aaa",
+    fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: disabled ? "not-allowed" : "pointer",
+    touchAction: "manipulation" as const, opacity: disabled ? 0.4 : 1,
+  } as const;
 }
 
-function teamSelBtn(tid: string, selected: string, color: string) {
+function targetBtn(tid: string, selected: string, color: string) {
   const active = tid === selected;
-  return { padding: "4px 8px", background: active ? `${color}15` : "rgba(10,16,24,0.6)", border: `1px solid ${active ? color : "#1a2a3a"}`, borderRadius: 4, color: active ? color : "#4a6a7a", fontSize: "0.5rem", fontFamily: FONT, cursor: "pointer" } as const;
+  return {
+    padding: "8px 12px", background: active ? `${color}18` : "rgba(10,16,24,0.6)",
+    border: `1px solid ${active ? color : "#1a2a3a"}`, borderRadius: 6,
+    color: active ? color : "#5a7a8a", fontSize: "clamp(0.65rem,1.3vw,0.8rem)",
+    fontFamily: FONT, cursor: "pointer", fontWeight: active ? 700 : 400,
+    touchAction: "manipulation" as const,
+  } as const;
 }

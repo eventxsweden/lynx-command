@@ -107,27 +107,66 @@ export default function PrintPage({ params }: { params: Promise<{ eventId: strin
         </div>
       ))}
 
-      {/* QR code section placeholder */}
+      {/* QR code section */}
       <div style={{ breakBefore: "page", textAlign: "center", paddingTop: 40 }}>
-        <h2>Snabblänkar</h2>
-        <p style={{ color: "#666" }}>Öppna dessa URLs på respektive enhet:</p>
-        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 20 }}>
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>HQ (TV)</div>
-            <div style={{ fontFamily: "monospace", fontSize: 12, color: "#888" }}>/</div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Admin (mobil)</div>
-            <div style={{ fontFamily: "monospace", fontSize: 12, color: "#888" }}>/admin</div>
-          </div>
-          {event.teams.map((t) => (
-            <div key={t.id}>
-              <div style={{ fontWeight: 700, marginBottom: 4, color: t.color }}>{t.symbol} {t.name}</div>
-              <div style={{ fontFamily: "monospace", fontSize: 12, color: "#888" }}>/team/{t.id}</div>
-            </div>
-          ))}
-        </div>
+        <h2>Snabblänkar & QR-koder</h2>
+        <p style={{ color: "#666", marginBottom: 8 }}>Skanna QR-koden eller öppna URL:en på respektive enhet.</p>
+        <p style={{ color: "#999", fontSize: 12, marginBottom: 24 }}>Bas-URL: ange din Vercel-adress nedan</p>
+        <QRSection event={event} />
       </div>
+    </div>
+  );
+}
+
+function QRSection({ event }: { event: LynxEvent }) {
+  const [baseUrl, setBaseUrl] = useState("");
+  const [qrUrls, setQrUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    setBaseUrl(url);
+  }, []);
+
+  useEffect(() => {
+    if (!baseUrl) return;
+    const generateQR = async () => {
+      try {
+        const QRCode = (await import("qrcode")).default;
+        const urls: Record<string, string> = {};
+        urls["hq"] = await QRCode.toDataURL(`${baseUrl}/`, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } });
+        urls["admin"] = await QRCode.toDataURL(`${baseUrl}/admin`, { width: 180, margin: 1 });
+        urls["stats"] = await QRCode.toDataURL(`${baseUrl}/stats`, { width: 180, margin: 1 });
+        for (const t of event.teams) {
+          urls[t.id] = await QRCode.toDataURL(`${baseUrl}/team/${t.id}`, { width: 180, margin: 1 });
+        }
+        setQrUrls(urls);
+      } catch (e) {
+        console.error("QR generation failed", e);
+      }
+    };
+    generateQR();
+  }, [baseUrl, event.teams]);
+
+  const items = [
+    { key: "hq", label: "HQ (TV)", path: "/", color: "#333" },
+    { key: "admin", label: "Admin (mobil)", path: "/admin", color: "#cc3300" },
+    { key: "stats", label: "Statistik", path: "/stats", color: "#666" },
+    ...event.teams.map((t) => ({ key: t.id, label: `${t.symbol} ${t.name}`, path: `/team/${t.id}`, color: t.color })),
+  ];
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 30, marginTop: 20 }}>
+      {items.map((item) => (
+        <div key={item.key} style={{ textAlign: "center", padding: 12, border: "1px solid #ddd", borderRadius: 8, minWidth: 140 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: item.color, fontSize: 14 }}>{item.label}</div>
+          {qrUrls[item.key] ? (
+            <img src={qrUrls[item.key]} alt={`QR ${item.label}`} style={{ width: 140, height: 140 }} />
+          ) : (
+            <div style={{ width: 140, height: 140, background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#999" }}>Genererar...</div>
+          )}
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#888", marginTop: 6 }}>{baseUrl}{item.path}</div>
+        </div>
+      ))}
     </div>
   );
 }
