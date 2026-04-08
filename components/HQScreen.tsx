@@ -56,8 +56,8 @@ export default function HQScreen({ event }: Props) {
   useEffect(() => {
     setShowCont(false); setCodeIn(""); setFb(null);
     if (phase === "intro") { playIncoming(); setTimeout(() => speak(theme.introSpeech), 800); }
-    else if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Gå till era ${v.station.toLowerCase()}er. Varje ${v.mission.toLowerCase()} ger en ledtråd. Klockan tickar.`), 800); }
-    else if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har rapporterat in. Kombinera era siffror. Ange slutkoden.`), 800); }
+    else if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
+    else if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`), 800); }
     else if (phase === "complete") { playComplete(); setTimeout(() => speak(theme.completeSpeech), 800); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -141,11 +141,15 @@ export default function HQScreen({ event }: Props) {
   // ── ACTIVATE ──
   if (phase === "activate") return (
     <div style={H}>
-      <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.accentColor, opacity: 0.45, fontFamily: FONT }}>SÄKERHETSKONTROLL</div>
-      <h1 style={{ fontSize: "clamp(1.3rem,3vw,2.5rem)", fontWeight: 700, color: fb?.type === "success" ? theme.successColor : fb?.type === "error" ? "#ff4444" : theme.accentColor, textShadow: fb?.type === "success" ? `0 0 30px ${theme.successColor}60` : `0 0 25px ${theme.accentColor}40`, margin: 0, textAlign: "center", animation: fb?.type === "error" ? "shake 0.4s" : "none", fontFamily: FONT }}>
-        {fb?.type === "success" ? "✓ VERIFIERAD" : fb?.type === "error" ? "⚠ FEL KOD" : "ANGE AKTIVERINGSKOD"}
-      </h1>
-      {fb?.type !== "success" && <Numpad value={codeIn} onChange={(fn) => setCodeIn(fn)} onSubmit={handleAct} maxLen={event.activationCode.length} disabled={!!fb} accentColor={theme.accentColor} />}
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.08} overlay="radial-gradient(ellipse at center, transparent 25%, #060a10 70%)" />
+      <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(6px,1.5vh,16px)" }}>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.accentColor, opacity: 0.45, fontFamily: FONT }}>SÄKERHETSKONTROLL</div>
+        <h1 style={{ fontSize: "clamp(1.3rem,3vw,2.5rem)", fontWeight: 700, color: fb?.type === "success" ? theme.successColor : fb?.type === "error" ? "#ff4444" : theme.accentColor, textShadow: fb?.type === "success" ? `0 0 30px ${theme.successColor}60` : `0 0 25px ${theme.accentColor}40`, margin: 0, textAlign: "center", animation: fb?.type === "error" ? "shake 0.4s" : "none", fontFamily: FONT }}>
+          {fb?.type === "success" ? "✓ VERIFIERAD" : fb?.type === "error" ? "⚠ FEL KOD" : "ANGE AKTIVERINGSKOD"}
+        </h1>
+        {fb?.type !== "success" && <Numpad value={codeIn} onChange={(fn) => setCodeIn(fn)} onSubmit={handleAct} maxLen={event.activationCode.length} disabled={!!fb} accentColor={theme.accentColor} />}
+      </div>
+      <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
     </div>
   );
@@ -158,7 +162,7 @@ export default function HQScreen({ event }: Props) {
   // ── ACTIVE ──
   if (phase === "active") return (
     <div style={H}>
-      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.06} overlay="radial-gradient(ellipse at center, transparent 40%, #060a10 85%)" />
+      <VideoBackground src="/videos/radar-sweep.mp4" opacity={0.08} overlay="radial-gradient(ellipse at center, transparent 40%, #060a10 85%)" />
       {/* Top status bar */}
       <div style={{ position: "absolute", top: 12, left: 20, right: 20, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
         <div style={{ fontSize: "clamp(0.4rem,0.7vw,0.55rem)", color: theme.accentColor, opacity: 0.4, fontFamily: FONT, letterSpacing: "0.15em" }}>
@@ -238,15 +242,19 @@ export default function HQScreen({ event }: Props) {
   // ── COMPLETE ──
   if (phase === "complete") return (
     <div style={{ ...H, background: "radial-gradient(ellipse at center,#001a10 0%,#080c12 70%)" }}>
-      <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.successColor, opacity: 0.6, fontFamily: FONT }}>{v.mission} SLUTFÖRT</div>
-      <h1 style={{ fontSize: "clamp(1.5rem,4vw,3.5rem)", fontWeight: 700, color: theme.successColor, textShadow: `0 0 40px ${theme.successColor}80`, margin: 0, textAlign: "center", fontFamily: FONT }}>CERTIFIERING BEKRÄFTAD</h1>
-      <div style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", color: theme.accentColor, letterSpacing: "0.25em", opacity: 0.5, fontFamily: FONT }}>{theme.certTitle}</div>
-      <TypedMsg text={theme.completeSpeech} color="#88ddaa" />
-      <div style={{ display: "flex", gap: 30, marginTop: 12 }}>
-        {event.teams.map((t) => (
-          <div key={t.id} style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", color: t.color, opacity: 0.6, textShadow: `0 0 15px ${t.color}40` }}>{t.symbol}</div>
-        ))}
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.06} overlay="radial-gradient(ellipse at center, transparent 30%, #001a10 60%, #080c12 90%)" />
+      <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(6px,1.5vh,16px)" }}>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.successColor, opacity: 0.6, fontFamily: FONT }}>{v.mission} SLUTFÖRT</div>
+        <h1 style={{ fontSize: "clamp(1.5rem,4vw,3.5rem)", fontWeight: 700, color: theme.successColor, textShadow: `0 0 40px ${theme.successColor}80`, margin: 0, textAlign: "center", fontFamily: FONT }}>CERTIFIERING BEKRÄFTAD</h1>
+        <div style={{ fontSize: "clamp(0.55rem,0.9vw,0.7rem)", color: theme.accentColor, letterSpacing: "0.25em", opacity: 0.5, fontFamily: FONT }}>{theme.certTitle}</div>
+        <TypedMsg text={theme.completeSpeech} color="#88ddaa" />
+        <div style={{ display: "flex", gap: 30, marginTop: 12 }}>
+          {event.teams.map((t) => (
+            <div key={t.id} style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", color: t.color, opacity: 0.6, textShadow: `0 0 15px ${t.color}40` }}>{t.symbol}</div>
+          ))}
+        </div>
       </div>
+      <HQAtmosphere color={theme.successColor} />
       <ScanLines /><MuteButton />
     </div>
   );
@@ -261,20 +269,24 @@ function IntroPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["them
   const H = hqBase(theme.bgGradient);
   return (
     <div style={H}>
-      <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.accentColor, opacity: 0.45, fontFamily: FONT }}>SÄKER KANAL</div>
-      <h1 style={{ fontSize: "clamp(1.5rem,3.5vw,3rem)", color: theme.accentColor, fontWeight: 700, letterSpacing: "0.08em", textShadow: `0 0 25px ${theme.accentColor}40`, margin: 0, textAlign: "center", fontFamily: FONT }}>INKOMMANDE MEDDELANDE</h1>
-      <div style={{ maxWidth: 650, fontSize: "clamp(0.75rem,1.5vw,1.05rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "5em", fontFamily: FONT }}>
-        {t}{!d && <span style={{ color: theme.accentColor, animation: "blink 0.6s infinite" }}>▊</span>}
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.12} overlay="radial-gradient(ellipse at center, transparent 20%, #060a10 70%)" />
+      <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(6px,1.5vh,16px)" }}>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.accentColor, opacity: 0.45, fontFamily: FONT }}>SÄKER KANAL</div>
+        <h1 style={{ fontSize: "clamp(1.5rem,3.5vw,3rem)", color: theme.accentColor, fontWeight: 700, letterSpacing: "0.08em", textShadow: `0 0 25px ${theme.accentColor}40`, margin: 0, textAlign: "center", fontFamily: FONT }}>INKOMMANDE MEDDELANDE</h1>
+        <div style={{ maxWidth: 650, fontSize: "clamp(0.75rem,1.5vw,1.05rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "5em", fontFamily: FONT }}>
+          {t}{!d && <span style={{ color: theme.accentColor, animation: "blink 0.6s infinite" }}>▊</span>}
+        </div>
+        <div style={{ display: "flex", gap: "clamp(20px,5vw,50px)", marginTop: 12 }}>
+          {event.teams.map((tm) => (
+            <div key={tm.id} style={{ textAlign: "center", opacity: 0.5 }}>
+              <div style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", color: tm.color }}>{tm.symbol}</div>
+              <div style={{ fontSize: "clamp(0.45rem,0.8vw,0.6rem)", color: tm.color, letterSpacing: "0.2em", fontFamily: FONT }}>{tm.name}</div>
+            </div>
+          ))}
+        </div>
+        {showCont && <button onClick={onNext} style={cBtn(theme.accentColor)}>ANGE AKTIVERINGSKOD ▶</button>}
       </div>
-      <div style={{ display: "flex", gap: "clamp(20px,5vw,50px)", marginTop: 12 }}>
-        {event.teams.map((tm) => (
-          <div key={tm.id} style={{ textAlign: "center", opacity: 0.5 }}>
-            <div style={{ fontSize: "clamp(1.5rem,3vw,2.5rem)", color: tm.color }}>{tm.symbol}</div>
-            <div style={{ fontSize: "clamp(0.45rem,0.8vw,0.6rem)", color: tm.color, letterSpacing: "0.2em", fontFamily: FONT }}>{tm.name}</div>
-          </div>
-        ))}
-      </div>
-      {showCont && <button onClick={onNext} style={cBtn(theme.accentColor)}>ANGE AKTIVERINGSKOD ▶</button>}
+      <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
     </div>
   );
@@ -286,20 +298,24 @@ function DispatchPhase({ theme, event, showCont, onNext }: { theme: LynxEvent["t
   const H = hqBase(theme.bgGradient);
   return (
     <div style={H}>
-      <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: "#ff9500", opacity: 0.6, fontFamily: FONT }}>TEAM-AKTIVERING</div>
-      <h1 style={{ fontSize: "clamp(1.3rem,3.5vw,2.8rem)", color: "#ff9500", fontWeight: 700, textShadow: "0 0 30px rgba(255,149,0,0.35)", margin: 0, textAlign: "center", fontFamily: FONT }}>GÅ TILL ERA BASER</h1>
-      <div style={{ maxWidth: 620, fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "4em", fontFamily: FONT }}>
-        {t}{!d && <span style={{ color: "#ff9500", animation: "blink 0.6s infinite" }}>▊</span>}
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.1} overlay="radial-gradient(ellipse at center, transparent 25%, #060a10 70%)" />
+      <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(6px,1.5vh,16px)" }}>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: "#ff9500", opacity: 0.6, fontFamily: FONT }}>TEAM-AKTIVERING</div>
+        <h1 style={{ fontSize: "clamp(1.3rem,3.5vw,2.8rem)", color: "#ff9500", fontWeight: 700, textShadow: "0 0 30px rgba(255,149,0,0.35)", margin: 0, textAlign: "center", fontFamily: FONT }}>GÅ TILL ERA BASER</h1>
+        <div style={{ maxWidth: 620, fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "4em", fontFamily: FONT }}>
+          {t}{!d && <span style={{ color: "#ff9500", animation: "blink 0.6s infinite" }}>▊</span>}
+        </div>
+        <div style={{ display: "flex", gap: "clamp(12px,3vw,30px)", marginTop: 8 }}>
+          {event.teams.map((tm) => (
+            <div key={tm.id} style={{ border: `2px solid ${tm.color}`, borderRadius: 12, padding: "clamp(12px,2vw,24px) clamp(16px,3vw,32px)", background: `${tm.accent}0.05)`, textAlign: "center", minWidth: "clamp(80px,15vw,140px)" }}>
+              <div style={{ fontSize: "clamp(2rem,4vw,3rem)", marginBottom: 8 }}>{tm.symbol}</div>
+              <div style={{ fontSize: "clamp(0.65rem,1.2vw,0.9rem)", color: tm.color, fontWeight: 700, letterSpacing: "0.15em", fontFamily: FONT }}>TEAM {tm.name}</div>
+            </div>
+          ))}
+        </div>
+        {showCont && <button onClick={onNext} style={cBtn("#ff9500")}>STARTA {v.mission} ▶</button>}
       </div>
-      <div style={{ display: "flex", gap: "clamp(12px,3vw,30px)", marginTop: 8 }}>
-        {event.teams.map((tm) => (
-          <div key={tm.id} style={{ border: `2px solid ${tm.color}`, borderRadius: 12, padding: "clamp(12px,2vw,24px) clamp(16px,3vw,32px)", background: `${tm.accent}0.05)`, textAlign: "center", minWidth: "clamp(80px,15vw,140px)" }}>
-            <div style={{ fontSize: "clamp(2rem,4vw,3rem)", marginBottom: 8 }}>{tm.symbol}</div>
-            <div style={{ fontSize: "clamp(0.65rem,1.2vw,0.9rem)", color: tm.color, fontWeight: 700, letterSpacing: "0.15em", fontFamily: FONT }}>TEAM {tm.name}</div>
-          </div>
-        ))}
-      </div>
-      {showCont && <button onClick={onNext} style={cBtn("#ff9500")}>STARTA {v.mission} ▶</button>}
+      <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
     </div>
   );
@@ -311,20 +327,24 @@ function ConvergePhase({ theme, event, showCont, onNext }: { theme: LynxEvent["t
   const H = hqBase(theme.bgGradient);
   return (
     <div style={H}>
-      <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.successColor, opacity: 0.6, fontFamily: FONT }}>ALLA TEAM KLARA</div>
-      <h1 style={{ fontSize: "clamp(1.3rem,3.5vw,2.8rem)", color: theme.successColor, fontWeight: 700, textShadow: `0 0 30px ${theme.successColor}60`, margin: 0, textAlign: "center", fontFamily: FONT }}>SAMLING VID {v.hq}</h1>
-      <div style={{ maxWidth: 600, fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "3em", fontFamily: FONT }}>
-        {t}{!d && <span style={{ color: theme.successColor, animation: "blink 0.6s infinite" }}>▊</span>}
+      <VideoBackground src="/videos/radar-sweep.mp4" opacity={0.1} overlay="radial-gradient(ellipse at center, transparent 25%, #060a10 70%)" />
+      <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(6px,1.5vh,16px)" }}>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.successColor, opacity: 0.6, fontFamily: FONT }}>ALLA TEAM KLARA</div>
+        <h1 style={{ fontSize: "clamp(1.3rem,3.5vw,2.8rem)", color: theme.successColor, fontWeight: 700, textShadow: `0 0 30px ${theme.successColor}60`, margin: 0, textAlign: "center", fontFamily: FONT }}>SAMLING VID {v.hq}</h1>
+        <div style={{ maxWidth: 600, fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#85a0b5", minHeight: "3em", fontFamily: FONT }}>
+          {t}{!d && <span style={{ color: theme.successColor, animation: "blink 0.6s infinite" }}>▊</span>}
+        </div>
+        <div style={{ display: "flex", gap: "clamp(16px,4vw,40px)", marginTop: 8 }}>
+          {event.teams.map((team) => (
+            <div key={team.id} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)", color: team.color, letterSpacing: "0.15em", marginBottom: 6, fontFamily: FONT }}>{team.symbol} {team.name}</div>
+              <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", color: team.color, fontWeight: 700, textShadow: `0 0 20px ${team.color}60`, width: "clamp(50px,8vw,80px)", height: "clamp(55px,9vw,85px)", border: `2px solid ${team.color}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: `${team.accent}0.06)`, fontFamily: FONT }}>{team.finalDigit}</div>
+            </div>
+          ))}
+        </div>
+        {showCont && <button onClick={onNext} style={{ ...cBtn("#ff6633") }}>ANGE SLUTKOD ▶</button>}
       </div>
-      <div style={{ display: "flex", gap: "clamp(16px,4vw,40px)", marginTop: 8 }}>
-        {event.teams.map((team) => (
-          <div key={team.id} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)", color: team.color, letterSpacing: "0.15em", marginBottom: 6, fontFamily: FONT }}>{team.symbol} {team.name}</div>
-            <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", color: team.color, fontWeight: 700, textShadow: `0 0 20px ${team.color}60`, width: "clamp(50px,8vw,80px)", height: "clamp(55px,9vw,85px)", border: `2px solid ${team.color}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: `${team.accent}0.06)`, fontFamily: FONT }}>{team.finalDigit}</div>
-          </div>
-        ))}
-      </div>
-      {showCont && <button onClick={onNext} style={{ ...cBtn("#ff6633") }}>ANGE SLUTKOD ▶</button>}
+      <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
     </div>
   );
