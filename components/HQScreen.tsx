@@ -34,16 +34,24 @@ export default function HQScreen({ event }: Props) {
 
   useEffect(() => {
     const poll = async () => {
+      // Poll team progress
       const p: Record<string, TeamProgress> = {};
       for (const t of event.teams) {
         p[t.id] = await sGet<TeamProgress>(`lynx-team-${t.id}`, { teamId: t.id, missionIndex: 0, currentMission: "", totalMissions: t.missions.length, allDone: false, finalDigit: t.finalDigit, timestamp: 0 });
       }
       setTp(p);
+      // Poll phase changes from admin
+      const hqState = await sGet<{ phase: string; timestamp: number }>("lynx-hq-state", null);
+      if (hqState && hqState.phase !== phase) {
+        setPhase(hqState.phase);
+        if (hqState.phase === "boot") setBooted(false);
+      }
     };
     poll();
-    const iv = setInterval(poll, 2000);
+    const iv = setInterval(poll, 1500);
     return () => clearInterval(iv);
-  }, [event.teams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.teams, phase]);
 
   useEffect(() => {
     if (phase === "boot" && !booted) {
@@ -69,14 +77,12 @@ export default function HQScreen({ event }: Props) {
     }
   }, [phase]);
 
+  // Only Shift+R (reset) and Shift+F (fullscreen) on HQ — no Space/Arrow
+  // Phase control is admin-only via the phase nav buttons
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (phase === "activate" || phase === "final_code") return;
-      if (e.code === "Space" || e.code === "ArrowRight") { e.preventDefault(); advPhase(); }
-      else if (e.code === "KeyR" && e.shiftKey) { setPhase("boot"); setBooted(false); }
-      else if (e.code === "KeyF" && e.shiftKey) {
-        document.documentElement.requestFullscreen?.();
-      }
+      if (e.code === "KeyR" && e.shiftKey) { e.preventDefault(); setPhase("boot"); setBooted(false); }
+      else if (e.code === "KeyF" && e.shiftKey) { e.preventDefault(); document.documentElement.requestFullscreen?.(); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -214,7 +220,7 @@ export default function HQScreen({ event }: Props) {
           <button onClick={() => setPhase("converge")} style={{ ...cBtn(theme.successColor) }}>SAMLA ALLA ▶</button>
         </div>
       )}
-      {!allDone && <div style={{ fontSize: "clamp(0.5rem,0.85vw,0.7rem)", color: "#334455", marginTop: 12, fontFamily: FONT }}>Väntar på team... (Space = hoppa)</div>}
+      {!allDone && <div style={{ fontSize: "clamp(0.5rem,0.85vw,0.7rem)", color: "#334455", marginTop: 12, fontFamily: FONT }}>Väntar på team...</div>}
       <HQAtmosphere color={theme.accentColor} />
       <ScanLines /><MuteButton />
     </div>
