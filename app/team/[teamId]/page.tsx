@@ -5,6 +5,7 @@ import { LynxEvent } from "@/lib/types";
 import { DEFAULT_EVENT_AGENT, ALL_DEFAULT_EVENTS } from "@/lib/default-events";
 import { GLOBAL_STYLES } from "@/lib/styles";
 import TeamTerminal from "@/components/TeamTerminal";
+import KioskMode from "@/components/KioskMode";
 
 export default function TeamPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
@@ -45,7 +46,9 @@ export default function TeamPage({ params }: { params: Promise<{ teamId: string 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_STYLES }} />
-      <TeamTerminal team={team} vocabulary={event.theme.vocabulary} />
+      <KioskMode>
+        <TeamTerminal team={team} vocabulary={event.theme.vocabulary} />
+      </KioskMode>
     </>
   );
 }

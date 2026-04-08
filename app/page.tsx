@@ -5,6 +5,7 @@ import { LynxEvent } from "@/lib/types";
 import { DEFAULT_EVENT_AGENT, ALL_DEFAULT_EVENTS } from "@/lib/default-events";
 import { GLOBAL_STYLES } from "@/lib/styles";
 import HQScreen from "@/components/HQScreen";
+import KioskMode from "@/components/KioskMode";
 
 export default function HQPage() {
   const [event, setEvent] = useState<LynxEvent | null>(null);
@@ -42,7 +43,9 @@ export default function HQPage() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_STYLES }} />
-      <HQScreen event={event} />
+      <KioskMode>
+        <HQScreen event={event} />
+      </KioskMode>
     </>
   );
 }
