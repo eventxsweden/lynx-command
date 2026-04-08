@@ -31,6 +31,7 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingAnswer, setEditingAnswer] = useState<{ teamId: string; mIdx: number } | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [showLinks, setShowLinks] = useState(false);
 
   const theme = event.theme;
   const v = theme.vocabulary;
@@ -112,18 +113,23 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
         <button onClick={() => setShowBuilder(true)} style={{ padding: "8px 16px", background: "rgba(20,30,40,0.8)", border: `1px solid ${theme.accentColor}40`, borderRadius: 6, color: theme.accentColor, fontSize: "clamp(0.7rem,1.5vw,0.85rem)", fontFamily: FONT, cursor: "pointer", fontWeight: 700 }}>📋 EVENT</button>
       </div>
 
-      {/* ═══ Active Event Banner ═══ */}
-      <div style={{ background: `${theme.accentColor}08`, border: `1px solid ${theme.accentColor}25`, borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ fontSize: "clamp(0.55rem,1.1vw,0.65rem)", color: "#5a7a8a", letterSpacing: "0.15em" }}>AKTIVT EVENT</div>
-          <div style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
+      {/* ═══ Active Event Banner + Links ═══ */}
+      <div style={{ background: `${theme.accentColor}08`, border: `1px solid ${theme.accentColor}25`, borderRadius: 10, padding: "12px 16px", marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "clamp(0.55rem,1.1vw,0.65rem)", color: "#5a7a8a", letterSpacing: "0.15em" }}>AKTIVT EVENT</div>
+            <div style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
+          </div>
+          <button onClick={() => setShowLinks(!showLinks)} style={{ padding: "6px 12px", background: showLinks ? `${theme.accentColor}15` : "transparent", border: `1px solid ${showLinks ? theme.accentColor : "#2a3a4a"}`, borderRadius: 6, color: showLinks ? theme.accentColor : "#5a7a8a", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" }}>
+            🔗 LÄNKAR
+          </button>
         </div>
-        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a" }}>{event.theme.name}</div>
+        {showLinks && <AdminQuickLinks event={event} />}
       </div>
 
-      {/* ═══ Phase Navigation ═══ */}
-      <div style={{ background: "rgba(15,22,30,0.8)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
-        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 8 }}>HQ-FAS: <span style={{ color: theme.accentColor }}>{hqState.phase?.toUpperCase()}</span></div>
+      {/* ═══ Phase Navigation — Sticky on mobile ═══ */}
+      <div style={{ background: "rgba(15,22,30,0.95)", border: "1px solid #1a2a3a", borderRadius: 10, padding: "12px 14px", marginBottom: 14, position: "sticky", top: 0, zIndex: 40 }}>
+        <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 8 }}>HQ-FAS: <span style={{ color: theme.accentColor, fontWeight: 700 }}>{hqState.phase?.toUpperCase()}</span></div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
           {phases.map((p) => (
             <button key={p.id} onClick={() => setPhase(p.id)} style={{
@@ -296,6 +302,35 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function AdminQuickLinks({ event }: { event: LynxEvent }) {
+  const [baseUrl, setBaseUrl] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+  useEffect(() => { setBaseUrl(typeof window !== "undefined" ? window.location.origin : ""); }, []);
+
+  const links = [
+    { key: "hq", icon: "🖥", label: "HQ", path: "/" },
+    { key: "admin", icon: "📱", label: "Admin", path: "/admin" },
+    ...event.teams.map((t) => ({ key: t.id, icon: t.symbol, label: t.name, path: `/team/${t.id}` })),
+    { key: "stats", icon: "📊", label: "Stats", path: "/stats" },
+  ];
+
+  return (
+    <div style={{ marginTop: 10, borderTop: "1px solid #1a2530", paddingTop: 10 }}>
+      {links.map((l) => (
+        <div key={l.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
+          <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", color: "#7a9aaa" }}>{l.icon} {l.label}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: "clamp(0.5rem,1vw,0.65rem)", color: "#4a6a7a" }}>{baseUrl}{l.path}</span>
+            <button onClick={() => { navigator.clipboard?.writeText(baseUrl + l.path); setCopied(l.key); setTimeout(() => setCopied(null), 1200); }} style={{ padding: "4px 8px", background: copied === l.key ? "rgba(51,255,136,0.15)" : "rgba(20,30,40,0.6)", border: `1px solid ${copied === l.key ? "#33ff88" : "#2a3a4a"}`, borderRadius: 4, color: copied === l.key ? "#33ff88" : "#5a7a8a", fontSize: "clamp(0.5rem,1vw,0.65rem)", fontFamily: FONT, cursor: "pointer" }}>
+              {copied === l.key ? "✓" : "📋"}
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
