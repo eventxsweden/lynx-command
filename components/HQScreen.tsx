@@ -12,6 +12,7 @@ import ScanLines from "./ScanLines";
 import Timer from "./Timer";
 import MuteButton from "./MuteButton";
 import { HQAtmosphere } from "./Atmosphere";
+import VideoBackground from "./VideoBackground";
 
 interface Props {
   event: LynxEvent;
@@ -119,8 +120,9 @@ export default function HQScreen({ event }: Props) {
   // ── BOOT ──
   if (phase === "boot") return (
     <div style={H}>
-      <div style={{ animation: "fade-in 0.5s", textAlign: "center" }}>
-        <div style={{ fontSize: "clamp(2rem,5vw,4rem)", letterSpacing: "0.35em", color: theme.accentColor, fontWeight: 700, marginBottom: 24 }}>{theme.orgName}</div>
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.2} overlay="radial-gradient(ellipse at center, transparent 30%, #060a10 80%)" />
+      <div style={{ animation: "fade-in 0.5s", textAlign: "center", zIndex: 2, position: "relative" }}>
+        <div style={{ fontSize: "clamp(2rem,5vw,4rem)", letterSpacing: "0.35em", color: theme.accentColor, fontWeight: 700, marginBottom: 24, textShadow: `0 0 40px ${theme.accentColor}60` }}>{theme.orgName}</div>
         <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.9rem)", opacity: 0.4, lineHeight: 2.4, color: theme.accentColor }}>
           <div>COMMAND CENTER v4.0</div>
           <div>INITIALIZING...</div>
@@ -156,6 +158,7 @@ export default function HQScreen({ event }: Props) {
   // ── ACTIVE ──
   if (phase === "active") return (
     <div style={H}>
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.06} overlay="radial-gradient(ellipse at center, transparent 40%, #060a10 85%)" />
       {/* Top status bar */}
       <div style={{ position: "absolute", top: 12, left: 20, right: 20, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
         <div style={{ fontSize: "clamp(0.4rem,0.7vw,0.55rem)", color: theme.accentColor, opacity: 0.4, fontFamily: FONT, letterSpacing: "0.15em" }}>

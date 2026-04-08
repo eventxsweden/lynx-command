@@ -6,6 +6,7 @@ import { ALL_THEMES } from "@/lib/themes";
 import { ALL_DEFAULT_EVENTS } from "@/lib/default-events";
 import { STATION_TYPES, STATION_CATEGORIES, generateStation } from "@/lib/generators";
 import { FONT } from "@/lib/styles";
+import PuzzleAdvisor from "./PuzzleAdvisor";
 
 interface Props {
   event: LynxEvent;
@@ -80,7 +81,7 @@ function QuickLinks({ event }: { event: LynxEvent }) {
 // MAIN EVENT BUILDER
 // ═══════════════════════════════════════════════════════════════
 export default function EventBuilder({ event, allEvents, onEventChange, onEventsChange, onClose }: Props) {
-  const [view, setView] = useState<"list" | "edit" | "stations">("list");
+  const [view, setView] = useState<"list" | "edit" | "stations" | "puzzles">("list");
   const [editEvent, setEditEvent] = useState<LynxEvent>(event);
   const [stationTeamIdx, setStationTeamIdx] = useState(0);
   const [previewMission, setPreviewMission] = useState<GeneratedMission | null>(null);
@@ -131,11 +132,22 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
     setView("edit");
   };
 
+  // ═══ PUZZLE ADVISOR ═══
+  if (view === "puzzles") {
+    return <PuzzleAdvisor onClose={() => setView("list")} teamCount={editEvent.teams.length} ageRange={[7, 12]} />;
+  }
+
   // ═══ LIST VIEW ═══
   if (view === "list") {
     return (
       <div style={container()}>
-        <Header onClose={onClose} title="EVENT-HANTERARE" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <button onClick={onClose} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a3a4a", borderRadius: 6, color: "#6a8a9a", fontSize: S.body, fontFamily: FONT, cursor: "pointer", touchAction: "manipulation" }}>← TILLBAKA</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setView("puzzles")} style={{ padding: "8px 14px", background: "rgba(221,168,68,0.1)", border: "1px solid #dda84440", borderRadius: 6, color: "#dda844", fontSize: S.body, fontFamily: FONT, cursor: "pointer", fontWeight: 700 }}>🧩 PUSSELGUIDE</button>
+            <span style={{ fontSize: S.label, letterSpacing: "0.15em", color: "#5a7a8a", display: "flex", alignItems: "center" }}>EVENT-HANTERARE</span>
+          </div>
+        </div>
 
         {/* Active event */}
         <div style={{ ...card(), borderColor: event.theme.accentColor + "40" }}>
@@ -205,15 +217,20 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
         {previewMission ? (
           <div>
             <div style={card()}>
-              <div style={{ fontSize: S.heading, color: team.color, fontWeight: 700, marginBottom: 8 }}>{previewMission.icon} {previewMission.title}</div>
-              <div style={{ fontSize: S.body, color: "#8aa0b0", lineHeight: 1.7, marginBottom: 10 }}>{previewMission.briefing}</div>
-              <div style={{ fontSize: S.body, color: "#5a7a8a", padding: "8px 10px", background: "rgba(10,16,24,0.5)", borderRadius: 6 }}>
-                Svar: <span style={{ color: "#33ff88", fontWeight: 700, fontSize: S.heading }}>{previewMission.answer}</span>
-                <span style={{ color: "#4a6a7a" }}> ({previewMission.answerLen} siffror)</span>
+              <div style={{ fontSize: "clamp(1rem,2.2vw,1.3rem)", color: team.color, fontWeight: 700, marginBottom: 12 }}>{previewMission.icon} {previewMission.title}</div>
+              <div style={{ fontSize: S.body, color: "#a0b8c8", lineHeight: 1.8, marginBottom: 14, padding: "10px 14px", background: "rgba(10,16,24,0.4)", borderRadius: 8, borderLeft: `3px solid ${team.color}30` }}>{previewMission.briefing}</div>
+              <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                <div style={{ flex: 1, padding: "12px 14px", background: "rgba(51,255,136,0.06)", border: "1px solid #33ff8830", borderRadius: 8, textAlign: "center" }}>
+                  <div style={{ fontSize: S.small, color: "#5a8a6a", marginBottom: 4 }}>SVAR</div>
+                  <div style={{ fontSize: "clamp(1.1rem,2.5vw,1.5rem)", color: "#33ff88", fontWeight: 700 }}>{previewMission.answer}</div>
+                  <div style={{ fontSize: S.small, color: "#4a6a5a" }}>{previewMission.answerLen} siffror</div>
+                </div>
               </div>
-              <div style={{ fontSize: S.small, color: "#5a7a8a", marginTop: 10, marginBottom: 4 }}>Ledtrådar:</div>
+              <div style={{ fontSize: S.label, color: "#8aa0b0", marginBottom: 6, fontWeight: 700 }}>💡 Ledtrådar:</div>
               {previewMission.hints.map((h, i) => (
-                <div key={i} style={{ fontSize: S.small, color: "#6a8a9a", paddingLeft: 10, padding: "4px 10px", lineHeight: 1.5 }}>{i + 1}. <span style={{ color: "#4a6a5a" }}>[{h.level}]</span> {h.text}</div>
+                <div key={i} style={{ fontSize: S.body, color: "#7a9aaa", padding: "8px 12px", marginBottom: 4, background: "rgba(10,16,24,0.3)", borderRadius: 6, lineHeight: 1.6, borderLeft: `2px solid ${h.level === "mild" ? "#4a8a6a" : h.level === "medium" ? "#8a8a4a" : "#8a5a4a"}40` }}>
+                  <span style={{ color: h.level === "mild" ? "#5a9a7a" : h.level === "medium" ? "#9a9a5a" : "#9a6a5a", fontSize: S.small, fontWeight: 700 }}>NIVÅ {i + 1}</span> — {h.text}
+                </div>
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -253,10 +270,10 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
                         border: "1px solid #2a3a4a", borderRadius: 8, cursor: "pointer",
                         textAlign: "left", fontFamily: FONT, touchAction: "manipulation",
                       }}>
-                        <div style={{ fontSize: S.body, color: "#a0b8c8", fontWeight: 700 }}>{st.icon} {st.name}</div>
-                        <div style={{ fontSize: S.small, color: "#5a7a8a", marginTop: 4 }}>{"⭐".repeat(st.difficulty)} — {st.ageRange[0]}–{st.ageRange[1]} år</div>
-                        <div style={{ fontSize: S.small, color: "#4a6a7a", marginTop: 3, lineHeight: 1.4 }}>{st.description}</div>
-                        {st.requiresProps.length > 0 && <div style={{ fontSize: S.tiny, color: "#6a5a4a", marginTop: 4 }}>Kräver: {st.requiresProps.join(", ")}</div>}
+                        <div style={{ fontSize: S.body, color: "#c0d8e8", fontWeight: 700 }}>{st.icon} {st.name}</div>
+                        <div style={{ fontSize: S.small, color: "#7a9aaa", marginTop: 4 }}>{"⭐".repeat(st.difficulty)} — {st.ageRange[0]}–{st.ageRange[1]} år</div>
+                        <div style={{ fontSize: S.small, color: "#6a8a9a", marginTop: 4, lineHeight: 1.5 }}>{st.description}</div>
+                        {st.requiresProps.length > 0 && <div style={{ fontSize: S.small, color: "#9a8a6a", marginTop: 5 }}>📦 {st.requiresProps.join(", ")}</div>}
                       </button>
                     ))}
                   </div>
@@ -333,9 +350,9 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
 
       {editEvent.teams.map((team, ti) => (
         <div key={team.id} style={{ ...card(), borderColor: team.color + "30" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontSize: S.heading, color: team.color, fontWeight: 700 }}>{team.symbol} {team.name}</span>
-            <span style={{ fontSize: S.small, color: "#5a7a8a" }}>Slutsiffra: <span style={{ color: team.color, fontWeight: 700 }}>{team.finalDigit}</span></span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: "clamp(0.9rem,2vw,1.1rem)", color: team.color, fontWeight: 700 }}>{team.symbol} {team.name}</span>
+            <span style={{ fontSize: S.body, color: "#7a9aaa", background: "rgba(10,16,24,0.5)", padding: "4px 10px", borderRadius: 4 }}>Slutsiffra: <span style={{ color: team.color, fontWeight: 700, fontSize: S.heading }}>{team.finalDigit}</span></span>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}><Label>Namn</Label><Input value={team.name} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].name = v; setEditEvent(u); }} /></div>
@@ -344,9 +361,9 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
 
           <div style={{ fontSize: S.small, color: "#5a7a8a", marginBottom: 6 }}>{editEvent.theme.vocabulary.mission} ({team.missions.length})</div>
           {team.missions.map((m, mi) => (
-            <div key={mi} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid #1a2530" }}>
-              <span style={{ fontSize: S.body, color: "#7a9aaa", flex: 1 }}>{mi + 1}. {m.icon} {m.title} — <span style={{ color: "#8aaa9a", fontWeight: 700 }}>{m.answer}</span></span>
-              <button onClick={() => { const u = { ...editEvent }; u.teams[ti].missions.splice(mi, 1); setEditEvent(u); }} style={{ ...actionBtn("#6a3a3a"), padding: "6px 10px" }}>✕</button>
+            <div key={mi} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4, background: "rgba(10,16,24,0.3)", borderRadius: 6, border: "1px solid #1a253040" }}>
+              <span style={{ fontSize: S.body, color: "#8aa0b0", flex: 1 }}>{mi + 1}. {m.icon} <strong>{m.title}</strong> — svar: <span style={{ color: "#33ff88", fontWeight: 700 }}>{m.answer}</span></span>
+              <button onClick={() => { const u = { ...editEvent }; u.teams[ti].missions.splice(mi, 1); setEditEvent(u); }} style={{ ...actionBtn("#6a3a3a"), padding: "8px 12px" }}>✕</button>
             </div>
           ))}
           <button onClick={() => { setStationTeamIdx(ti); setView("stations"); }} style={{ ...actionBtn(team.color), width: "100%", marginTop: 8, padding: "12px", fontSize: S.body, fontWeight: 700 }}>
@@ -395,14 +412,14 @@ function Header({ onClose, title }: { onClose: () => void; title: string }) {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: S.small, color: "#5a7a8a", letterSpacing: "0.08em", marginBottom: 4 }}>{children}</div>;
+  return <div style={{ fontSize: S.small, color: "#8aa0b0", letterSpacing: "0.08em", marginBottom: 5, fontWeight: 700 }}>{children}</div>;
 }
 
 function Input({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <input value={value} onChange={(e) => onChange(e.target.value)} style={{
-      width: "100%", padding: "10px 12px", background: "rgba(10,16,24,0.8)",
-      border: "1px solid #2a3a4a", borderRadius: 6, color: "#a0b8c8",
+      width: "100%", padding: "12px 14px", background: "rgba(10,16,24,0.8)",
+      border: "1px solid #3a4a5a", borderRadius: 8, color: "#c0d8e8",
       fontSize: S.body, fontFamily: FONT, outline: "none",
     }} />
   );

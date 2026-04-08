@@ -5,7 +5,15 @@
       "Bash(npm run:*)",
       "Bash(gh auth:*)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebFetch(domain:pixabay.com)",
+      "Bash(curl -L -o spy-hud.mp4 \"https://cdn.pixabay.com/video/2022/12/10/142363-780562112_large.mp4\")",
+      "Bash(curl -L -o scifi-display.mp4 \"https://cdn.pixabay.com/video/2016/11/15/6422-191580364_large.mp4\")",
+      "Bash(curl -L -o radar-sweep.mp4 \"https://cdn.pixabay.com/video/2025/01/16/252825-1046996537_large.mp4\")",
+      "Bash(curl -L -o spy-hud.mp4 \"https://cdn.pixabay.com/video/2022/12/10/142363-780562112_large.mp4\" --max-time 60 -v)",
+      "Bash(curl -L -k -o spy-hud.mp4 \"https://cdn.pixabay.com/video/2022/12/10/142363-780562112_large.mp4\" --max-time 120)",
+      "Bash(curl -L -k -o scifi-display.mp4 \"https://cdn.pixabay.com/video/2016/11/15/6422-191580364_large.mp4\" --max-time 120)",
+      "Bash(curl -L -k -o radar-sweep.mp4 \"https://cdn.pixabay.com/video/2025/01/16/252825-1046996537_large.mp4\" --max-time 120)"
     ]
   }
 }

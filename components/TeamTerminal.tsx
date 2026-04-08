@@ -12,6 +12,7 @@ import IncomingMessage from "./IncomingMessage";
 import ScanLines from "./ScanLines";
 import MuteButton from "./MuteButton";
 import { TeamAtmosphere, TargetingFrame, MissionLoadSequence, CodeReveal } from "./Atmosphere";
+import VideoBackground from "./VideoBackground";
 
 interface Props {
   team: Team;
@@ -187,10 +188,11 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
   // ── Waiting for HQ ──
   if (!active) return (
     <div style={tBase()}>
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.1} overlay={`radial-gradient(ellipse at center, transparent 30%, #060a10 75%)`} />
       {msgOverlay}
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", zIndex: 2, position: "relative" }}>
         <div style={{ fontSize: "clamp(3rem,10vw,6rem)", marginBottom: 16, opacity: 0.3 }}>{team.symbol}</div>
-        <div style={{ fontSize: "clamp(1.2rem,3vw,2rem)", color: team.color, letterSpacing: "0.15em", fontWeight: 700, fontFamily: FONT }}>TEAM {team.name}</div>
+        <div style={{ fontSize: "clamp(1.2rem,3vw,2rem)", color: team.color, letterSpacing: "0.15em", fontWeight: 700, fontFamily: FONT, textShadow: `0 0 30px ${team.color}40` }}>TEAM {team.name}</div>
         <div style={{ fontSize: "clamp(0.7rem,1.5vw,1rem)", color: "#4a6a7a", marginTop: 16, animation: "blink 2s infinite", fontFamily: FONT }}>VÄNTAR PÅ {v.hq}-SIGNAL...</div>
       </div>
       <TeamAtmosphere color={team.color} />
