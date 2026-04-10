@@ -62,22 +62,35 @@ export default function HQScreen({ event }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.teams, phase]);
 
-  // Boot sound — phase change comes from admin
-  useEffect(() => {
-    if (phase === "boot") { playBoot(); setBooted(false); }
-    if (phase !== "boot") setBooted(true);
-  }, [phase]);
+  // Helper: set phase locally AND write to storage (so admin sees it)
+  const advancePhase = useCallback((p: string) => {
+    setPhase(p);
+    sSet("lynx-hq-state", { phase: p, timestamp: Date.now() });
+  }, [setPhase]);
 
+  // Auto-chain: boot → intro → activate
   useEffect(() => {
     setCodeIn(""); setFb(null);
-    if (phase === "intro") { playIncoming(); setTimeout(() => speak(theme.introSpeech), 800); }
-    else if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
-    else if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`), 800); }
-    else if (phase === "complete") { playComplete(); setTimeout(() => speak(theme.completeSpeech), 800); }
+    if (phase === "boot") {
+      playBoot(); setBooted(false);
+      // Auto-advance to intro after 3.5s
+      const t = setTimeout(() => advancePhase("intro"), 3500);
+      return () => clearTimeout(t);
+    }
+    if (phase !== "boot") setBooted(true);
+    if (phase === "intro") {
+      playIncoming();
+      setTimeout(() => speak(theme.introSpeech), 800);
+      // Auto-advance to activate after intro speech (~20s for long text)
+      const speechLen = Math.max(theme.introSpeech.length * 55, 12000);
+      const t = setTimeout(() => advancePhase("activate"), speechLen);
+      return () => clearTimeout(t);
+    }
+    if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
+    if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`), 800); }
+    if (phase === "complete") { playComplete(); setTimeout(() => speak(theme.completeSpeech), 800); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
-
-  // No showCont — admin controls transitions
 
   // Only Shift+R (reset) and Shift+F (fullscreen) on HQ — no Space/Arrow
   // Phase control is admin-only via the phase nav buttons
@@ -95,8 +108,10 @@ export default function HQScreen({ event }: Props) {
   const handleAct = useCallback(() => {
     if (codeIn === event.activationCode) {
       playUnlock(); setFb({ type: "success" });
-      setTimeout(() => speak("Aktiveringskod bekräftad. Väntar på order."), 300);
-      // Don't auto-advance — admin clicks DISPATCH when ready
+      setTimeout(() => speak("Aktiveringskod bekräftad."), 300);
+      // Auto-advance to dispatch after 3s
+      if (fbT.current) clearTimeout(fbT.current);
+      fbT.current = setTimeout(() => { setFb(null); advancePhase("dispatch"); }, 3000);
     } else {
       playError(); setFb({ type: "error" }); setCodeIn("");
       if (fbT.current) clearTimeout(fbT.current);
@@ -108,7 +123,9 @@ export default function HQScreen({ event }: Props) {
     if (codeIn === event.finalCode) {
       playUnlock(); setFb({ type: "success" });
       setTimeout(() => speak(`${v.briefcase} upplåst!`), 300);
-      // Don't auto-advance — admin clicks KLAR when ready
+      // Auto-advance to complete after 3s
+      if (fbT.current) clearTimeout(fbT.current);
+      fbT.current = setTimeout(() => { setFb(null); advancePhase("complete"); }, 3000);
     } else {
       playError(); setFb({ type: "error" }); setCodeIn("");
       if (fbT.current) clearTimeout(fbT.current);
