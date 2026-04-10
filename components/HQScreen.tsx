@@ -21,6 +21,7 @@ interface Props {
 const VALID_PHASES = ["boot", "intro", "activate", "dispatch", "active", "converge", "final_code", "complete"];
 
 export default function HQScreen({ event }: Props) {
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [phase, setPhaseRaw] = useState("boot");
   const setPhase = useCallback((p: string) => { if (VALID_PHASES.includes(p)) setPhaseRaw(p); }, []);
   const [booted, setBooted] = useState(false);
@@ -117,6 +118,20 @@ export default function HQScreen({ event }: Props) {
 
   const allDone = event.teams.every((t) => tp[t.id]?.allDone);
   const H = hqBase(theme.bgGradient);
+
+  // ── Audio unlock — required before any sound plays ──
+  if (!audioUnlocked) return (
+    <div style={H} onClick={() => { setAudioUnlocked(true); playBoot(); }}>
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.15} overlay="radial-gradient(ellipse at center, transparent 30%, #060a10 80%)" />
+      <div style={{ textAlign: "center", zIndex: 2, position: "relative", cursor: "pointer" }}>
+        <div style={{ fontSize: "clamp(2rem,5vw,4rem)", letterSpacing: "0.35em", color: theme.accentColor, fontWeight: 700, marginBottom: 24, textShadow: `0 0 40px ${theme.accentColor}60` }}>{theme.orgName}</div>
+        <div style={{ fontSize: "clamp(0.8rem,1.5vw,1.1rem)", color: theme.accentColor, opacity: 0.7, animation: "blink 2s infinite", marginTop: 20, letterSpacing: "0.15em" }}>
+          KLICKA FÖR ATT STARTA
+        </div>
+      </div>
+      <ScanLines />
+    </div>
+  );
 
   // ── BOOT ──
   if (phase === "boot") return (
