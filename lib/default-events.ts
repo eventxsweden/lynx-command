@@ -307,8 +307,176 @@ export const DEFAULT_EVENT_DETECTIVE: LynxEvent = {
   lastUsed: null,
 };
 
+export const DEFAULT_EVENT_TRAINING: LynxEvent = {
+  id: "default-training",
+  name: "LYNX Agent Training",
+  theme: {
+    ...THEME_AGENT,
+    id: "training",
+    name: "Agent Training",
+    introSpeech: "Välkomna till LYNX Agent Academy. Jag är Direktören. Ni har blivit utvalda för vår hemligaste agentutbildning. Den anläggning ni befinner er i just nu är vår nyaste bas — den är fortfarande under uppbyggnad. Vissa rum ser kanske inte ut som en hemlig agentbas ännu. Det är meningen. Inget gömställe är bättre än ett som inte ser ut som ett gömställe. Någonstans på den här basen finns ett kassaskåp. I kassaskåpet ligger nyckeln till en svart väska. Och i den väskan finns tre superserum som våra forskare har utvecklat. Ett serum som ger övermänsklig styrka. Ett som gör att man kan andas under vatten. Och ett som ger superhörsel. Bara agenter som klarar alla uppdrag får tillgång till serumen. Idag delas ni in i tre team. Varje team får sin egen terminal. Klara alla uppdrag — och serumen är era. Men först — bevisa att ni hör hemma här.",
+    completeSpeech: "Uppdraget är slutfört. Ni har klarat observation, kodknäckning, spårning, avkodning och samarbete. Ni har öppnat kassaskåpet. Ni har nått serumen. Från och med nu är ni certifierade LYNX-agenter med tillgång till förmågor ingen vanlig människa har. Använd dem klokt. Er identitet är registrerad i systemet. Jag kommer att följa er karriär med stort intresse. Kom ihåg — en agent löser aldrig uppdraget ensam. Var modiga. Var smarta. Var ett team. Direktören — slut.",
+    vocabulary: { ...THEME_AGENT.vocabulary, briefcase: "KASSASKÅPET" },
+  },
+  activationCode: "007",
+  finalCode: "371",
+  timerMinutes: null,
+  teams: [
+    {
+      id: "alpha", name: "ALPHA", symbol: "◆", color: "#00D4AA", accent: "rgba(0,212,170,", bg: "#0a1a1f", finalDigit: "3",
+      missions: [
+        {
+          id: "uv_messages", title: "HEMLIGA MEDDELANDEN", icon: "🔦",
+          briefing: "Agenter. En av våra agenter har lämnat hemliga meddelanden i er sektor — osynliga för blotta ögat. Använd er UV-utrustning. Hitta meddelandena markerade med ◆. Stjärnorna visar ordningen. De bildar tillsammans en kod.",
+          answer: "381", answerLen: 3,
+          hints: [
+            { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
+            { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=3, ★★=8, ★★★=1.", level: "strong" },
+          ],
+          successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
+        },
+        {
+          id: "energy_crystals", title: "ENERGIKRISTALLERNA", icon: "💎",
+          briefing: "Agenter. Vi har ett allvarligt läge. Fem behållare med LYNX-energikristaller har försvunnit från vårt laboratorium. Kristallerna driver all vår hemliga teknik. Varje team har fem behållare att spåra. Hitta era behållare — de är märkta med er symbol ◆. Räkna kristallerna. Det totala antalet är er kod.",
+          answer: "11", answerLen: 2,
+          hints: [
+            { text: "Våra sensorer visar att behållarna befinner sig på en högre nivå.", level: "mild" },
+            { text: "En behållare nära en arbetsyta. En där man tar emot besökare. En vid en avspärrning. En nära en skärm. En där många ögon brukar vara riktade.", level: "medium" },
+            { text: "Glöm inte att vända på behållarna — er symbol ◆ sitter på undersidan. Räkna ALLA stenar i era 5 burkar.", level: "strong" },
+          ],
+          successMsg: "Energikristallerna — säkrade. Bra spårningsarbete, agenter.",
+        },
+        {
+          id: "agent_handbook", title: "AGENTHANDBOKEN", icon: "📕",
+          briefing: "Agenter. Varje LYNX-agent har en personlig handbok — hemligstämplad och låst. Era handböcker har gömts i ett säkert utrymme på basen. Hitta er handbok. Hitta nyckeln som låser upp den. Men det räcker inte — meddelandet inuti är kodat. Ni behöver chiffernyckeln. En av våra agenter gömde den i gammal utrustning som inte längre används. Lycka till.",
+          answer: "593", answerLen: 3,
+          hints: [
+            { text: "Era handböcker har förseglats i ett av basens förvaringsrum. Materialet ni söker är inlindat i något som en gång täckte ett golv.", level: "mild" },
+            { text: "Nycklarna ligger i basens fordonshangar — under något som är byggt för fart. Chiffernyckeln finns i gammal spaningsutrustning på övre nivån.", level: "medium" },
+            { text: "Förrådet → mattan → boken. RC-banan → under en bil → nyckeln. Övervåningen → gammal kamera → chiffernyckeln. Översätt talen till bokstäver (A=1, B=2...), bokstäverna bildar ett sifferord.", level: "strong" },
+          ],
+          successMsg: "Agenthandboken — avkodad. Ni har bevisat att ni kan hitta, låsa upp och avkoda hemlig information. Imponerande.",
+        },
+        {
+          id: "info_exchange", title: "INFORMATIONSUTBYTET", icon: "🤝",
+          briefing: "Agenter. Det här uppdraget är annorlunda. Varje agent har fått hemliga dokument — men dokumenten tillhör inte ert team. De tillhör ett annat team. Ert uppdrag: hitta de agenter som har ERA dokument. Förhandla. Byt. Pussla ihop ert dokument. Utan samarbete mellan teamen misslyckas alla. En sann agent vet när man måste lita på andra.",
+          answer: "274", answerLen: 3,
+          hints: [
+            { text: "Agenterna i de andra teamen bär på ERA dokument. Kolla baksidan på era bitar — symbolen visar vilket team biten tillhör.", level: "mild" },
+            { text: "Gå till de andra teamen. Fråga: har ni bitar med vår symbol ◆? Vi har bitar med er.", level: "medium" },
+            { text: "Ni har alla bitarna. Lägg ut dem. Matcha kanterna. Koden avslöjar sig när bilden är komplett.", level: "strong" },
+          ],
+          successMsg: "Informationsutbytet — genomfört. Ni har bevisat att LYNX-agenter samarbetar — inte bara inom sitt team, utan mellan alla team.",
+        },
+      ],
+    },
+    {
+      id: "bravo", name: "BRAVO", symbol: "▲", color: "#F5A623", accent: "rgba(245,166,35,", bg: "#1a150a", finalDigit: "7",
+      missions: [
+        {
+          id: "energy_crystals", title: "ENERGIKRISTALLERNA", icon: "💎",
+          briefing: "Agenter. Vi har ett allvarligt läge. Fem behållare med LYNX-energikristaller har försvunnit från vårt laboratorium. Kristallerna driver all vår hemliga teknik. Varje team har fem behållare att spåra. Hitta era behållare — de är märkta med er symbol ▲. Räkna kristallerna. Det totala antalet är er kod.",
+          answer: "12", answerLen: 2,
+          hints: [
+            { text: "Våra sensorer visar att behållarna befinner sig på en högre nivå.", level: "mild" },
+            { text: "En behållare nära en arbetsyta. En där man tar emot besökare. En vid en avspärrning. En nära en skärm. En där många ögon brukar vara riktade.", level: "medium" },
+            { text: "Glöm inte att vända på behållarna — er symbol ▲ sitter på undersidan. Räkna ALLA stenar i era 5 burkar.", level: "strong" },
+          ],
+          successMsg: "Energikristallerna — säkrade. Bra spårningsarbete, agenter.",
+        },
+        {
+          id: "agent_handbook", title: "AGENTHANDBOKEN", icon: "📕",
+          briefing: "Agenter. Varje LYNX-agent har en personlig handbok — hemligstämplad och låst. Era handböcker har gömts i ett säkert utrymme på basen. Hitta er handbok. Hitta nyckeln som låser upp den. Men det räcker inte — meddelandet inuti är kodat. Ni behöver chiffernyckeln. En av våra agenter gömde den i gammal utrustning som inte längre används. Lycka till.",
+          answer: "472", answerLen: 3,
+          hints: [
+            { text: "Era handböcker har förseglats i ett av basens förvaringsrum. Materialet ni söker är inlindat i något som en gång täckte ett golv.", level: "mild" },
+            { text: "Nycklarna ligger i basens fordonshangar — under något som är byggt för fart. Chiffernyckeln finns i gammal spaningsutrustning på övre nivån.", level: "medium" },
+            { text: "Förrådet → mattan → boken. RC-banan → under en bil → nyckeln. Övervåningen → gammal kamera → chiffernyckeln. Översätt talen till bokstäver, bokstäverna bildar ett sifferord.", level: "strong" },
+          ],
+          successMsg: "Agenthandboken — avkodad. Ni har bevisat att ni kan hitta, låsa upp och avkoda hemlig information. Imponerande.",
+        },
+        {
+          id: "uv_messages", title: "HEMLIGA MEDDELANDEN", icon: "🔦",
+          briefing: "Agenter. En av våra agenter har lämnat hemliga meddelanden i er sektor — osynliga för blotta ögat. Använd er UV-utrustning. Hitta meddelandena markerade med ▲. Stjärnorna visar ordningen. De bildar tillsammans en kod.",
+          answer: "509", answerLen: 3,
+          hints: [
+            { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
+            { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=5, ★★=0, ★★★=9.", level: "strong" },
+          ],
+          successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
+        },
+        {
+          id: "info_exchange", title: "INFORMATIONSUTBYTET", icon: "🤝",
+          briefing: "Agenter. Det här uppdraget är annorlunda. Varje agent har fått hemliga dokument — men dokumenten tillhör inte ert team. De tillhör ett annat team. Ert uppdrag: hitta de agenter som har ERA dokument. Förhandla. Byt. Pussla ihop ert dokument. Utan samarbete mellan teamen misslyckas alla. En sann agent vet när man måste lita på andra.",
+          answer: "618", answerLen: 3,
+          hints: [
+            { text: "Agenterna i de andra teamen bär på ERA dokument. Kolla baksidan på era bitar — symbolen visar vilket team biten tillhör.", level: "mild" },
+            { text: "Gå till de andra teamen. Fråga: har ni bitar med vår symbol ▲? Vi har bitar med er.", level: "medium" },
+            { text: "Ni har alla bitarna. Lägg ut dem. Matcha kanterna. Koden avslöjar sig när bilden är komplett.", level: "strong" },
+          ],
+          successMsg: "Informationsutbytet — genomfört. Ni har bevisat att LYNX-agenter samarbetar — inte bara inom sitt team, utan mellan alla team.",
+        },
+      ],
+    },
+    {
+      id: "charlie", name: "CHARLIE", symbol: "●", color: "#B24BF3", accent: "rgba(178,75,243,", bg: "#1a0a1f", finalDigit: "1",
+      missions: [
+        {
+          id: "agent_handbook", title: "AGENTHANDBOKEN", icon: "📕",
+          briefing: "Agenter. Varje LYNX-agent har en personlig handbok — hemligstämplad och låst. Era handböcker har gömts i ett säkert utrymme på basen. Hitta er handbok. Hitta nyckeln som låser upp den. Men det räcker inte — meddelandet inuti är kodat. Ni behöver chiffernyckeln. En av våra agenter gömde den i gammal utrustning som inte längre används. Lycka till.",
+          answer: "816", answerLen: 3,
+          hints: [
+            { text: "Era handböcker har förseglats i ett av basens förvaringsrum. Materialet ni söker är inlindat i något som en gång täckte ett golv.", level: "mild" },
+            { text: "Nycklarna ligger i basens fordonshangar — under något som är byggt för fart. Chiffernyckeln finns i gammal spaningsutrustning på övre nivån.", level: "medium" },
+            { text: "Förrådet → mattan → boken. RC-banan → under en bil → nyckeln. Övervåningen → gammal kamera → chiffernyckeln. Översätt talen till bokstäver, bokstäverna bildar ett sifferord.", level: "strong" },
+          ],
+          successMsg: "Agenthandboken — avkodad. Ni har bevisat att ni kan hitta, låsa upp och avkoda hemlig information. Imponerande.",
+        },
+        {
+          id: "uv_messages", title: "HEMLIGA MEDDELANDEN", icon: "🔦",
+          briefing: "Agenter. En av våra agenter har lämnat hemliga meddelanden i er sektor — osynliga för blotta ögat. Använd er UV-utrustning. Hitta meddelandena markerade med ●. Stjärnorna visar ordningen. De bildar tillsammans en kod.",
+          answer: "647", answerLen: 3,
+          hints: [
+            { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
+            { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=6, ★★=4, ★★★=7.", level: "strong" },
+          ],
+          successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
+        },
+        {
+          id: "energy_crystals", title: "ENERGIKRISTALLERNA", icon: "💎",
+          briefing: "Agenter. Vi har ett allvarligt läge. Fem behållare med LYNX-energikristaller har försvunnit från vårt laboratorium. Kristallerna driver all vår hemliga teknik. Varje team har fem behållare att spåra. Hitta era behållare — de är märkta med er symbol ●. Räkna kristallerna. Det totala antalet är er kod.",
+          answer: "13", answerLen: 2,
+          hints: [
+            { text: "Våra sensorer visar att behållarna befinner sig på en högre nivå.", level: "mild" },
+            { text: "En behållare nära en arbetsyta. En där man tar emot besökare. En vid en avspärrning. En nära en skärm. En där många ögon brukar vara riktade.", level: "medium" },
+            { text: "Glöm inte att vända på behållarna — er symbol ● sitter på undersidan. Räkna ALLA stenar i era 5 burkar.", level: "strong" },
+          ],
+          successMsg: "Energikristallerna — säkrade. Bra spårningsarbete, agenter.",
+        },
+        {
+          id: "info_exchange", title: "INFORMATIONSUTBYTET", icon: "🤝",
+          briefing: "Agenter. Det här uppdraget är annorlunda. Varje agent har fått hemliga dokument — men dokumenten tillhör inte ert team. De tillhör ett annat team. Ert uppdrag: hitta de agenter som har ERA dokument. Förhandla. Byt. Pussla ihop ert dokument. Utan samarbete mellan teamen misslyckas alla. En sann agent vet när man måste lita på andra.",
+          answer: "935", answerLen: 3,
+          hints: [
+            { text: "Agenterna i de andra teamen bär på ERA dokument. Kolla baksidan på era bitar — symbolen visar vilket team biten tillhör.", level: "mild" },
+            { text: "Gå till de andra teamen. Fråga: har ni bitar med vår symbol ●? Vi har bitar med er.", level: "medium" },
+            { text: "Ni har alla bitarna. Lägg ut dem. Matcha kanterna. Koden avslöjar sig när bilden är komplett.", level: "strong" },
+          ],
+          successMsg: "Informationsutbytet — genomfört. Ni har bevisat att LYNX-agenter samarbetar — inte bara inom sitt team, utan mellan alla team.",
+        },
+      ],
+    },
+  ],
+  createdAt: Date.now(),
+  lastUsed: null,
+};
+
 export const ALL_DEFAULT_EVENTS: LynxEvent[] = [
   DEFAULT_EVENT_AGENT,
   DEFAULT_EVENT_SPACE,
   DEFAULT_EVENT_DETECTIVE,
+  DEFAULT_EVENT_TRAINING,
 ];
