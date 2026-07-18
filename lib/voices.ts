@@ -1,14 +1,15 @@
 // Shared voice preset -> ElevenLabs voice ID mapping (used by client speech.ts and the /api/tts route)
 import { VoicePreset } from "./speech";
 
-// Directors voice (chosen from the ElevenLabs voice library). Library voices are
-// API-blocked on the free plan — until upgraded, the per-preset fallback below is used.
-const DIRECTOR_VOICE = "cLAH1kXlkAivJHxCW601";
+// Chosen library voices. Library voices are API-blocked on the free ElevenLabs
+// plan — until upgraded, the per-preset fallback below is used automatically.
+const LIBRARY_VOICE_A = "cLAH1kXlkAivJHxCW601";
+const LIBRARY_VOICE_B = "HqmZnnvy6tCQd8EGWKRT";
 
 const DEFAULT_VOICE_IDS: Record<VoicePreset, string> = {
-  robot: DIRECTOR_VOICE, // Direktören — the picked library voice
-  commander: "pNInz6obpgDQGcFmaJgB", // Adam — deep, authoritative (premade)
-  agent: "ErXwobaYiN019PkySvjV", // Antoni — calm, neutral (premade)
+  robot: LIBRARY_VOICE_A,
+  commander: LIBRARY_VOICE_B,
+  agent: "EXAVITQu4vr4xnSDxMaL", // Bella — current voice, works on the free plan
 };
 
 const ENV_OVERRIDE: Record<VoicePreset, string | undefined> = {
@@ -18,11 +19,11 @@ const ENV_OVERRIDE: Record<VoicePreset, string | undefined> = {
 };
 
 // Premade ElevenLabs voices — usable on the free plan, unlike library voices.
-// (Rachel is legacy/plan-gated nowadays; Bella is the free female premade.)
+// Distinct per preset so the picker never plays the same voice twice.
 const FALLBACK_VOICE_IDS: Record<VoicePreset, string> = {
-  robot: "EXAVITQu4vr4xnSDxMaL", // Bella — soft, clear
+  robot: "ErXwobaYiN019PkySvjV", // Antoni
   commander: "pNInz6obpgDQGcFmaJgB", // Adam
-  agent: "ErXwobaYiN019PkySvjV", // Antoni
+  agent: "EXAVITQu4vr4xnSDxMaL", // Bella
 };
 
 export function voiceIdForPreset(preset: VoicePreset): string {

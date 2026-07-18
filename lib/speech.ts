@@ -17,9 +17,9 @@ export interface VoiceConfig {
 }
 
 export const VOICE_PRESETS: VoiceConfig[] = [
-  { id: "robot", name: "🎙 Direktören", description: "Er valda röst (Bella på gratisplan)", pitch: 1.15, rate: 0.88, preferFemale: true },
-  { id: "commander", name: "🎖 Befälhavare", description: "Adam — djup, auktoritär", pitch: 0.55, rate: 0.78, preferFemale: false },
-  { id: "agent", name: "🕵 Agent", description: "Antoni — lugn, neutral", pitch: 0.85, rate: 0.85, preferFemale: false },
+  { id: "robot", name: "🎙 Bibliotek A", description: "Er valda röst (Antoni på gratisplan)", pitch: 1.15, rate: 0.88, preferFemale: true },
+  { id: "commander", name: "🎙 Bibliotek B", description: "Er andra röst (Adam på gratisplan)", pitch: 0.55, rate: 0.78, preferFemale: false },
+  { id: "agent", name: "🎙 Bella", description: "Nuvarande röst — funkar på gratisplan", pitch: 0.85, rate: 0.85, preferFemale: true },
 ];
 
 let activePreset: VoicePreset = "robot";
