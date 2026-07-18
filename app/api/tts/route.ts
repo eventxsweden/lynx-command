@@ -4,7 +4,7 @@ import { voiceIdForPreset, FALLBACK_VOICE } from "@/lib/voices";
 import { VoicePreset } from "@/lib/speech";
 
 function audioResponse(buffer: Buffer) {
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=86400" },
   });
 }
