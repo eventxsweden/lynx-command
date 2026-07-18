@@ -181,10 +181,12 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
         setTermPhase("transmitting");
 
         setTimeout(() => {
-          // Step 3: HQ BEKRÄFTAR (1.5s)
+          // Step 3: HQ BEKRÄFTAR — speech must finish before we move on
           playStamp();
           setTermPhase("confirmed");
-          setTimeout(() => speak(mission.successMsg), 300);
+          const speechDone = new Promise<void>((resolve) => {
+            setTimeout(() => speak(mission.successMsg).then(resolve), 300);
+          });
 
           // Save stats
           const elapsed = Math.round((Date.now() - missionStartTime) / 1000);
@@ -197,8 +199,10 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
           // Step 4: Progress dot pling (after 1s)
           setTimeout(() => playDotPling(), 1000);
 
-          // Step 5: Transition (after 2.5s)
-          setTimeout(() => {
+          // Step 5: Transition — after speech ends (min 2.5s, max 12s safety cap)
+          const minWait = new Promise<void>((r) => setTimeout(r, 2500));
+          const safetyCap = new Promise<void>((r) => setTimeout(r, 12000));
+          Promise.race([Promise.all([speechDone, minWait]), safetyCap]).then(() => {
             const isLast = mIdx + 1 >= team.missions.length;
             if (isLast) {
               // Final mission — dramatic code reveal
@@ -211,7 +215,7 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
               setMIdx((i) => i + 1);
               setTermPhase("loading");
             }
-          }, 2500);
+          });
         }, 1000);
       }, 600);
 

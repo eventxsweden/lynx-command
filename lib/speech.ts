@@ -29,8 +29,8 @@ export function getVoicePreset(): VoicePreset { return activePreset; }
 
 let currentAudio: HTMLAudioElement | null = null;
 
-function speakWithBrowserFallback(text: string, rateOverride?: number) {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+function speakWithBrowserFallback(text: string, rateOverride?: number): Promise<void> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve();
   window.speechSynthesis.cancel();
 
   const config = VOICE_PRESETS.find((v) => v.id === activePreset) || VOICE_PRESETS[0];
@@ -57,12 +57,17 @@ function speakWithBrowserFallback(text: string, rateOverride?: number) {
     }
   }
 
-  speechSynthesis.speak(u);
+  return new Promise<void>((resolve) => {
+    u.onend = () => resolve();
+    u.onerror = () => resolve();
+    speechSynthesis.speak(u);
+  });
 }
 
 // Speaks via the server-side ElevenLabs TTS route when configured, falling back to the
 // browser's built-in speechSynthesis (worse quality, but works offline/without an API key).
-export async function speak(text: string, rateOverride?: number) {
+// Resolves when playback has finished, so callers can wait before switching screens.
+export async function speak(text: string, rateOverride?: number): Promise<void> {
   if (!speechEnabled) return;
   if (typeof window === "undefined") return;
 
@@ -82,10 +87,15 @@ export async function speak(text: string, rateOverride?: number) {
     audio.volume = 0.9;
     audio.playbackRate = rateOverride ?? 1;
     currentAudio = audio;
-    audio.onended = () => URL.revokeObjectURL(url);
     await audio.play();
+    await new Promise<void>((resolve) => {
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      // pause() (from a newer speak/stopSpeech) must also release waiting callers
+      audio.onpause = () => resolve();
+      audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+    });
   } catch {
-    speakWithBrowserFallback(text, rateOverride);
+    await speakWithBrowserFallback(text, rateOverride);
   }
 }
 

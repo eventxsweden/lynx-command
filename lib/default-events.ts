@@ -333,7 +333,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
           hints: [
             { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
             { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
-            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=3, ★★=8, ★★★=1.", level: "strong" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. En stjärna först, tre stjärnor sist.", level: "strong" },
           ],
           successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
         },
@@ -404,7 +404,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
           hints: [
             { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
             { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
-            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=5, ★★=0, ★★★=9.", level: "strong" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. En stjärna först, tre stjärnor sist.", level: "strong" },
           ],
           successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
         },
@@ -442,7 +442,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
           hints: [
             { text: "Våra sensorer visar att meddelandena finns på träningsbanan.", level: "mild" },
             { text: "Skanna de svarta hindren. Agent Fenix valde dem av en anledning.", level: "medium" },
-            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. ★=6, ★★=4, ★★★=7.", level: "strong" },
+            { text: "Glöm inte att räkna stjärnorna — de visar ordningen. En stjärna först, tre stjärnor sist.", level: "strong" },
           ],
           successMsg: "Hemliga meddelanden — godkänt. Ni ser det osynliga. En sann agentförmåga.",
         },
