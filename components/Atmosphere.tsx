@@ -288,7 +288,7 @@ export function CodeReveal({ digit, color, onDone }: { digit: string; color: str
       </div>
       {phase >= 2 && (
         <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.85rem)", color, opacity: 0.6, letterSpacing: "0.15em", marginTop: 8, animation: "fade-in 0.5s" }}>
-          MEMORERA DENNA SIFFRA — ÅTERVÄND TILL HQ
+          MEMORERA DENNA SIFFRA — DELA DEN INTE ÄNNU
         </div>
       )}
     </div>

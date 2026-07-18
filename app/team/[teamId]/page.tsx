@@ -47,7 +47,7 @@ export default function TeamPage({ params }: { params: Promise<{ teamId: string 
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_STYLES }} />
       <KioskMode>
-        <TeamTerminal team={team} vocabulary={event.theme.vocabulary} />
+        <TeamTerminal team={team} vocabulary={event.theme.vocabulary} allTeams={event.teams.map((t) => ({ id: t.id, totalMissions: t.missions.length }))} />
       </KioskMode>
     </>
   );

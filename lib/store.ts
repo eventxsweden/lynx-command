@@ -18,11 +18,13 @@ function getRedis(): Redis | null {
 // In-memory fallback for local development
 const memStore = new Map<string, string>();
 
-export async function kvSet(key: string, value: unknown): Promise<void> {
+export async function kvSet(key: string, value: unknown, ttlSeconds: number | null = 86400): Promise<void> {
   const r = getRedis();
   const json = JSON.stringify(value);
   if (r) {
-    await r.set(key, json, { ex: 86400 }); // 24h expiry
+    // ttlSeconds null = persist forever (used for cached TTS audio)
+    if (ttlSeconds === null) await r.set(key, json);
+    else await r.set(key, json, { ex: ttlSeconds });
   } else {
     memStore.set(key, json);
   }

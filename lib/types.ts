@@ -10,6 +10,7 @@ export interface Team {
   accent: string;
   bg: string;
   finalDigit: string;
+  activationCode?: string; // Per-team code entered on the team's own terminal
   missions: Mission[];
 }
 
@@ -37,6 +38,7 @@ export interface Theme {
   introSpeech: string;
   completeSpeech: string;
   certTitle: string;
+  unlockSpeech?: string; // Spoken when the final code opens the safe/briefcase
   accentColor: string;
   alertColor: string;
   successColor: string;

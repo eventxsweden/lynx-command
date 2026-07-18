@@ -87,7 +87,7 @@ export default function HQScreen({ event }: Props) {
       return () => clearTimeout(t);
     }
     if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
-    if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`), 800); }
+    if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Ingen känner hela koden. Samlas. Dela era siffror med varandra och ange slutkoden. Det här är ert sista prov — kan ni lita på varandra?`), 800); }
     if (phase === "complete") { playComplete(); setTimeout(() => speak(theme.completeSpeech), 800); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -108,7 +108,7 @@ export default function HQScreen({ event }: Props) {
   const handleAct = useCallback(() => {
     if (codeIn === event.activationCode) {
       playUnlock(); setFb({ type: "success" });
-      setTimeout(() => speak("Aktiveringskod bekräftad."), 300);
+      setTimeout(() => speak("Aktiveringskod bekräftad. Identitet verifierad. Välkomna, agenter."), 300);
       // Auto-advance to dispatch after 3s
       if (fbT.current) clearTimeout(fbT.current);
       fbT.current = setTimeout(() => { setFb(null); advancePhase("dispatch"); }, 3000);
@@ -122,7 +122,7 @@ export default function HQScreen({ event }: Props) {
   const handleFinal = useCallback(() => {
     if (codeIn === event.finalCode) {
       playUnlock(); setFb({ type: "success" });
-      setTimeout(() => speak(`${v.briefcase} upplåst!`), 300);
+      setTimeout(() => speak(theme.unlockSpeech || `${v.briefcase} upplåst!`), 300);
       // Auto-advance to complete after 3s
       if (fbT.current) clearTimeout(fbT.current);
       fbT.current = setTimeout(() => { setFb(null); advancePhase("complete"); }, 3000);
@@ -353,7 +353,7 @@ function DispatchPhase({ theme, event }: { theme: LynxEvent["theme"]; event: Lyn
 
 function ConvergePhase({ theme, event }: { theme: LynxEvent["theme"]; event: LynxEvent }) {
   const v = theme.vocabulary;
-  const [t, d] = useTypewriter(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Kombinera siffrorna och ange slutkoden. Det här avgör allt.`, 26);
+  const [t, d] = useTypewriter(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Ingen känner hela koden. Samlas. Dela era siffror med varandra och ange slutkoden. Det här är ert sista prov — kan ni lita på varandra?`, 26);
   const H = hqBase(theme.bgGradient);
   return (
     <div style={H}>
@@ -368,7 +368,8 @@ function ConvergePhase({ theme, event }: { theme: LynxEvent["theme"]; event: Lyn
           {event.teams.map((team) => (
             <div key={team.id} style={{ textAlign: "center" }}>
               <div style={{ fontSize: "clamp(0.5rem,0.8vw,0.65rem)", color: team.color, letterSpacing: "0.15em", marginBottom: 6, fontFamily: FONT }}>{team.symbol} {team.name}</div>
-              <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", color: team.color, fontWeight: 700, textShadow: `0 0 20px ${team.color}60`, width: "clamp(50px,8vw,80px)", height: "clamp(55px,9vw,85px)", border: `2px solid ${team.color}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: `${team.accent}0.06)`, fontFamily: FONT }}>{team.finalDigit}</div>
+              {/* Digits stay hidden — each team must share theirs verbally (the final trust test) */}
+              <div style={{ fontSize: "clamp(2rem,5vw,3.5rem)", color: team.color, fontWeight: 700, textShadow: `0 0 20px ${team.color}60`, width: "clamp(50px,8vw,80px)", height: "clamp(55px,9vw,85px)", border: `2px solid ${team.color}`, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: `${team.accent}0.06)`, fontFamily: FONT, animation: "blink 2s infinite" }}>?</div>
             </div>
           ))}
         </div>

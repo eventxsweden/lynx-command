@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
 import { playIncoming, playSuccess, playError, playUnlock, playTransmission, playStamp, playDotPling, playCrescendo, playStaticBurst, startAmbient, stopAmbient } from "@/lib/audio";
 import { speak } from "@/lib/speech";
-import { Team, AdminMessage, HQState } from "@/lib/types";
+import { Team, AdminMessage, HQState, TeamProgress } from "@/lib/types";
 import { tBase, FONT } from "@/lib/styles";
 import { useTypewriter } from "./TypedMsg";
 import Numpad from "./Numpad";
@@ -17,12 +17,16 @@ import VideoBackground from "./VideoBackground";
 interface Props {
   team: Team;
   vocabulary: { mission: string; station: string; hq: string; agent: string; briefcase: string };
+  allTeams?: { id: string; totalMissions: number }[];
 }
 
-type TerminalPhase = "waiting" | "loading" | "briefing" | "input" | "verifying" | "transmitting" | "confirmed" | "done" | "codeReveal";
+type TerminalPhase = "waiting" | "loading" | "briefing" | "input" | "verifying" | "transmitting" | "confirmed" | "done" | "codeReveal" | "waitingForTeams";
 
-export default function TeamTerminal({ team, vocabulary: v }: Props) {
+export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
   const [active, setActive] = useState(false);
+  const [needsActivation, setNeedsActivation] = useState(false);
+  const [actInput, setActInput] = useState("");
+  const [actError, setActError] = useState(false);
   const [mIdx, setMIdx] = useState(0);
   const [input, setInput] = useState("");
   const [termPhase, setTermPhase] = useState<TerminalPhase>("loading");
@@ -66,13 +70,20 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
     const poll = async () => {
       const hq = await sGet<HQState>("lynx-hq-state", { phase: "boot", timestamp: 0 });
       if (hq) {
-        if (hq.phase === "active" && !active) {
-          setActive(true); playIncoming();
-          speak(`${v.mission} mottaget. Er terminal är nu aktiv.`);
-          setTermPhase("loading");
+        if (hq.phase === "active" && !active && !needsActivation) {
+          if (team.activationCode) {
+            // Per-team login: each team types their own code on their terminal
+            setNeedsActivation(true); playIncoming();
+            speak("Terminal låst. Ange ert teams aktiveringskod.");
+          } else {
+            setActive(true); playIncoming();
+            speak(`${v.mission} mottaget. Er terminal är nu aktiv.`);
+            setTermPhase("loading");
+          }
         }
         if (hq.phase === "boot" || hq.phase === "intro") {
-          setActive(false); setMIdx(0); setInput(""); setTermPhase("loading");
+          setActive(false); setNeedsActivation(false); setActInput(""); setActError(false);
+          setMIdx(0); setInput(""); setTermPhase("loading");
           setAllDone(false); setLastMsgId(0); setAttempts(0); setHintsUsed(0);
         }
       }
@@ -86,7 +97,7 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
     const iv = setInterval(poll, 1500);
     return () => clearInterval(iv);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, lastMsgId, team.id]);
+  }, [active, needsActivation, lastMsgId, team.id]);
 
   // Report progress
   useEffect(() => {
@@ -103,6 +114,57 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
     setAttempts(0);
     setHintsUsed(0);
   }, [mIdx]);
+
+  // ── Per-team activation code entry ──
+  const handleActivation = useCallback(() => {
+    if (!team.activationCode || actInput.length === 0) return;
+    if (actInput === team.activationCode) {
+      playUnlock();
+      setNeedsActivation(false); setActive(true); setActInput("");
+      speak("Aktiveringskod bekräftad. Identitet verifierad. Välkomna, agenter.");
+      setTermPhase("loading");
+    } else {
+      playError(); setActError(true); setActInput("");
+      if (fbTimer.current) clearTimeout(fbTimer.current);
+      fbTimer.current = setTimeout(() => setActError(false), 2000);
+    }
+  }, [actInput, team.activationCode]);
+
+  // ── Simultaneous-mission gate: info_exchange starts only when ALL teams are ready ──
+  const gateActive = mission?.id === "info_exchange" && !!allTeams && allTeams.length > 1;
+  useEffect(() => {
+    if (!gateActive || !active || (termPhase !== "loading" && termPhase !== "waitingForTeams")) return;
+    let cancelled = false;
+    const checkTeams = async () => {
+      const states = await Promise.all(
+        allTeams!.map((t) => sGet<TeamProgress>(`lynx-team-${t.id}`, null).then((p) => ({ t, p })))
+      );
+      // A team is ready when it has reached its final (simultaneous) mission
+      return states.every(({ t, p }) => p && (p.allDone || p.missionIndex >= t.totalMissions - 1));
+    };
+    const iv = setInterval(async () => {
+      const ready = await checkTeams();
+      if (cancelled) return;
+      if (ready && termPhase === "waitingForTeams") setTermPhase("loading");
+      if (!ready && termPhase === "loading") {
+        setTermPhase("waitingForTeams");
+        playIncoming();
+        speak(`Alla era ${v.station.toLowerCase()}er är klara. Väntar på att alla team ska bli redo för det sista ${v.mission.toLowerCase()}et.`);
+      }
+    }, 1500);
+    // Run the first check immediately so the gate reacts without delay
+    checkTeams().then((ready) => {
+      if (cancelled) return;
+      if (ready && termPhase === "waitingForTeams") setTermPhase("loading");
+      if (!ready && termPhase === "loading") {
+        setTermPhase("waitingForTeams");
+        playIncoming();
+        speak(`Alla era ${v.station.toLowerCase()}er är klara. Väntar på att alla team ska bli redo för det sista ${v.mission.toLowerCase()}et.`);
+      }
+    });
+    return () => { cancelled = true; clearInterval(iv); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateActive, termPhase, active, mIdx]);
 
   // ── 5-Step Submit Sequence ──
   const handleSubmit = useCallback(() => {
@@ -165,8 +227,9 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
   const finishAllMissions = useCallback(() => {
     setAllDone(true);
     playUnlock();
-    speak(`Alla ${v.mission.toLowerCase()} klarade. Er kodsiffra är: ${team.finalDigit}. Återvänd till ${v.hq}.`);
-  }, [team.finalDigit, v]);
+    // Digit is shown on screen only — never spoken aloud where other teams can hear it
+    speak(`Alla ${v.mission.toLowerCase()} klarade. Er slutsiffra visas på skärmen. Memorera den. Dela den inte — ännu.`);
+  }, [v]);
 
   const msgOverlay = incomingMsg ? (
     <IncomingMessage message={incomingMsg} teamColor={team.color} onDismiss={() => setIncomingMsg(null)} />
@@ -185,6 +248,24 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
     );
   }
 
+  // ── Per-team activation code entry ──
+  if (!active && needsActivation) return (
+    <div style={tBase()}>
+      <VideoBackground src="/videos/spy-hud.mp4" opacity={0.1} overlay={`radial-gradient(ellipse at center, transparent 30%, #060a10 75%)`} />
+      {msgOverlay}
+      <div style={{ textAlign: "center", zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: "clamp(2rem,6vw,4rem)", opacity: 0.4 }}>{team.symbol}</div>
+        <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: team.color, opacity: 0.5, fontFamily: FONT }}>TEAM {team.name} — SÄKERHETSKONTROLL</div>
+        <h1 style={{ fontSize: "clamp(1.1rem,2.8vw,2rem)", fontWeight: 700, color: actError ? "#ff4444" : team.color, textShadow: actError ? "0 0 30px rgba(255,60,60,0.4)" : `0 0 25px ${team.color}40`, margin: 0, fontFamily: FONT, animation: actError ? "shake 0.4s" : "none" }}>
+          {actError ? "⚠ FEL KOD" : "ANGE ERT TEAMS AKTIVERINGSKOD"}
+        </h1>
+        <Numpad value={actInput} onChange={(fn) => setActInput(fn)} onSubmit={handleActivation} maxLen={team.activationCode?.length || 3} disabled={actError} accentColor={team.color} />
+      </div>
+      <TeamAtmosphere color={team.color} />
+      <ScanLines /><MuteButton />
+    </div>
+  );
+
   // ── Waiting for HQ ──
   if (!active) return (
     <div style={tBase()}>
@@ -194,6 +275,24 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
         <div style={{ fontSize: "clamp(3rem,10vw,6rem)", marginBottom: 16, opacity: 0.3 }}>{team.symbol}</div>
         <div style={{ fontSize: "clamp(1.2rem,3vw,2rem)", color: team.color, letterSpacing: "0.15em", fontWeight: 700, fontFamily: FONT, textShadow: `0 0 30px ${team.color}40` }}>TEAM {team.name}</div>
         <div style={{ fontSize: "clamp(0.7rem,1.5vw,1rem)", color: "#4a6a7a", marginTop: 16, animation: "blink 2s infinite", fontFamily: FONT }}>VÄNTAR PÅ {v.hq}-SIGNAL...</div>
+      </div>
+      <TeamAtmosphere color={team.color} />
+      <ScanLines /><MuteButton />
+    </div>
+  );
+
+  // ── Waiting for all teams before the simultaneous final mission ──
+  if (termPhase === "waitingForTeams") return (
+    <div style={tBase()}>
+      <VideoBackground src="/videos/radar-sweep.mp4" opacity={0.1} overlay={`radial-gradient(ellipse at center, transparent 30%, #060a10 75%)`} />
+      {msgOverlay}
+      <div style={{ textAlign: "center", zIndex: 2, position: "relative" }}>
+        <div style={{ fontSize: "clamp(0.6rem,1vw,0.8rem)", letterSpacing: "0.3em", color: "#33ff88", opacity: 0.6, marginBottom: 12, fontFamily: FONT }}>✓ ALLA {v.station.toUpperCase()}ER KLARA</div>
+        <div style={{ fontSize: "clamp(1.1rem,2.8vw,2rem)", color: team.color, fontWeight: 700, letterSpacing: "0.08em", fontFamily: FONT, textShadow: `0 0 25px ${team.color}40`, marginBottom: 16 }}>VÄNTAR PÅ ÖVRIGA TEAM</div>
+        <div style={{ fontSize: "clamp(0.7rem,1.3vw,0.95rem)", color: "#6a8a9a", maxWidth: 480, margin: "0 auto", lineHeight: 1.8, fontFamily: FONT }}>
+          Det sista {v.mission.toLowerCase()}et kräver alla team samtidigt. Invänta klartecken.
+        </div>
+        <div style={{ marginTop: 20, fontSize: "clamp(0.6rem,1vw,0.8rem)", color: "#4a6a7a", animation: "blink 1.5s infinite", fontFamily: FONT }}>SYNKRONISERAR TEAM-STATUS...</div>
       </div>
       <TeamAtmosphere color={team.color} />
       <ScanLines /><MuteButton />
@@ -223,7 +322,8 @@ export default function TeamTerminal({ team, vocabulary: v }: Props) {
           Bra jobbat, Team {team.name}. Er kodsiffra till {v.briefcase.toLowerCase()}:
         </div>
         <div style={{ fontSize: "clamp(4rem,12vw,8rem)", color: team.color, fontWeight: 700, textShadow: `0 0 40px ${team.color}80, 0 0 80px ${team.color}40`, fontFamily: FONT, animation: "glow-pulse 2s infinite" }}>{team.finalDigit}</div>
-        <div style={{ fontSize: "clamp(0.7rem,1.2vw,0.9rem)", color: "#4a6a7a", marginTop: 20, fontFamily: FONT }}>MEMORERA DENNA SIFFRA — ÅTERVÄND TILL {v.hq}</div>
+        <div style={{ fontSize: "clamp(0.7rem,1.2vw,0.9rem)", color: "#4a6a7a", marginTop: 20, fontFamily: FONT }}>MEMORERA DENNA SIFFRA — DELA DEN INTE ÄNNU</div>
+        <div style={{ fontSize: "clamp(0.6rem,1vw,0.8rem)", color: "#3a5a6a", marginTop: 8, fontFamily: FONT }}>ÅTERVÄND TILL {v.hq} OCH INVÄNTA ORDER</div>
       </div>
       <TeamAtmosphere color={team.color} />
       <ScanLines /><MuteButton />

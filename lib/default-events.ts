@@ -316,6 +316,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
     name: "Agent Training",
     introSpeech: "Välkomna till LYNX Agent Academy. Jag är Direktören. Ni har blivit utvalda för vår hemligaste agentutbildning. Den anläggning ni befinner er i just nu är vår nyaste bas — den är fortfarande under uppbyggnad. Vissa rum ser kanske inte ut som en hemlig agentbas ännu. Det är meningen. Inget gömställe är bättre än ett som inte ser ut som ett gömställe. Någonstans på den här basen finns ett kassaskåp. I kassaskåpet ligger nyckeln till en svart väska. Och i den väskan finns tre superserum som våra forskare har utvecklat. Ett serum som ger övermänsklig styrka. Ett som gör att man kan andas under vatten. Och ett som ger superhörsel. Bara agenter som klarar alla uppdrag får tillgång till serumen. Idag delas ni in i tre team. Varje team får sin egen terminal. Klara alla uppdrag — och serumen är era. Men först — bevisa att ni hör hemma här.",
     completeSpeech: "Uppdraget är slutfört. Ni har klarat observation, kodknäckning, spårning, avkodning och samarbete. Ni har öppnat kassaskåpet. Ni har nått serumen. Från och med nu är ni certifierade LYNX-agenter med tillgång till förmågor ingen vanlig människa har. Använd dem klokt. Er identitet är registrerad i systemet. Jag kommer att följa er karriär med stort intresse. Kom ihåg — en agent löser aldrig uppdraget ensam. Var modiga. Var smarta. Var ett team. Direktören — slut.",
+    unlockSpeech: "Kassaskåpet är öppet. Nyckeln ni hittat öppnar den svarta väskan. Öppna den. Ni har förtjänat det.",
     vocabulary: { ...THEME_AGENT.vocabulary, briefcase: "KASSASKÅPET" },
   },
   activationCode: "007",
@@ -323,7 +324,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
   timerMinutes: null,
   teams: [
     {
-      id: "alpha", name: "ALPHA", symbol: "◆", color: "#00D4AA", accent: "rgba(0,212,170,", bg: "#0a1a1f", finalDigit: "3",
+      id: "alpha", name: "ALPHA", symbol: "◆", color: "#00D4AA", accent: "rgba(0,212,170,", bg: "#0a1a1f", finalDigit: "3", activationCode: "007",
       missions: [
         {
           id: "uv_messages", title: "HEMLIGA MEDDELANDEN", icon: "🔦",
@@ -372,7 +373,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
       ],
     },
     {
-      id: "bravo", name: "BRAVO", symbol: "▲", color: "#F5A623", accent: "rgba(245,166,35,", bg: "#1a150a", finalDigit: "7",
+      id: "bravo", name: "BRAVO", symbol: "▲", color: "#F5A623", accent: "rgba(245,166,35,", bg: "#1a150a", finalDigit: "7", activationCode: "008",
       missions: [
         {
           id: "energy_crystals", title: "ENERGIKRISTALLERNA", icon: "💎",
@@ -421,7 +422,7 @@ export const DEFAULT_EVENT_TRAINING: LynxEvent = {
       ],
     },
     {
-      id: "charlie", name: "CHARLIE", symbol: "●", color: "#B24BF3", accent: "rgba(178,75,243,", bg: "#1a0a1f", finalDigit: "1",
+      id: "charlie", name: "CHARLIE", symbol: "●", color: "#B24BF3", accent: "rgba(178,75,243,", bg: "#1a0a1f", finalDigit: "1", activationCode: "009",
       missions: [
         {
           id: "agent_handbook", title: "AGENTHANDBOKEN", icon: "📕",

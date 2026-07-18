@@ -27,8 +27,9 @@ let activePreset: VoicePreset = "robot";
 export function setVoicePreset(preset: VoicePreset) { activePreset = preset; }
 export function getVoicePreset(): VoicePreset { return activePreset; }
 
-export function speak(text: string, rateOverride?: number) {
-  if (!speechEnabled) return;
+let currentAudio: HTMLAudioElement | null = null;
+
+function speakWithBrowserFallback(text: string, rateOverride?: number) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
 
@@ -59,6 +60,35 @@ export function speak(text: string, rateOverride?: number) {
   speechSynthesis.speak(u);
 }
 
+// Speaks via the server-side ElevenLabs TTS route when configured, falling back to the
+// browser's built-in speechSynthesis (worse quality, but works offline/without an API key).
+export async function speak(text: string, rateOverride?: number) {
+  if (!speechEnabled) return;
+  if (typeof window === "undefined") return;
+
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, preset: activePreset }),
+    });
+    if (!res.ok) throw new Error("tts unavailable");
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = 0.9;
+    audio.playbackRate = rateOverride ?? 1;
+    currentAudio = audio;
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
+  } catch {
+    speakWithBrowserFallback(text, rateOverride);
+  }
+}
+
 export function previewVoice(preset: VoicePreset) {
   const old = activePreset;
   activePreset = preset;
@@ -69,6 +99,7 @@ export function previewVoice(preset: VoicePreset) {
 }
 
 export function stopSpeech() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }
