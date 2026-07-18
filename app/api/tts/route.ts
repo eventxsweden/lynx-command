@@ -9,9 +9,33 @@ function audioResponse(buffer: Buffer) {
   });
 }
 
+// Upstash caps request size (~1MB), so long speeches are stored in chunks:
+// the main key holds either the base64 string directly, or { chunks: n } with
+// the pieces under `<key>#0..n-1`.
+const CHUNK_SIZE = 700_000;
+
 async function getCached(voice: string, text: string): Promise<Buffer | null> {
-  const cached = await kvGet<string>(`tts:${voice}:${text}`);
-  return cached ? Buffer.from(cached, "base64") : null;
+  const key = `tts:${voice}:${text}`;
+  const cached = await kvGet<string | { chunks: number }>(key);
+  if (!cached) return null;
+  if (typeof cached === "string") return Buffer.from(cached, "base64");
+  const parts = await Promise.all(
+    Array.from({ length: cached.chunks }, (_, i) => kvGet<string>(`${key}#${i}`))
+  );
+  if (parts.some((p) => !p)) return null;
+  return Buffer.from(parts.join(""), "base64");
+}
+
+async function setCached(voice: string, text: string, b64: string): Promise<void> {
+  const key = `tts:${voice}:${text}`;
+  if (b64.length <= CHUNK_SIZE) {
+    await kvSet(key, b64, null);
+    return;
+  }
+  const chunks: string[] = [];
+  for (let i = 0; i < b64.length; i += CHUNK_SIZE) chunks.push(b64.slice(i, i + CHUNK_SIZE));
+  await Promise.all(chunks.map((c, i) => kvSet(`${key}#${i}`, c, null)));
+  await kvSet(key, { chunks: chunks.length }, null);
 }
 
 export async function POST(req: NextRequest) {
@@ -65,11 +89,9 @@ export async function POST(req: NextRequest) {
 
   const audioBuffer = Buffer.from(await res.arrayBuffer());
   const b64 = audioBuffer.toString("base64");
-  // Cache forever (scripted lines repeat across events). Skip oversized payloads —
-  // Upstash caps request size, and a failed cache write must never break playback.
-  if (b64.length < 900_000) {
-    try { await kvSet(`tts:${usedVoice}:${text}`, b64, null); } catch { /* serve uncached */ }
-  }
+  // Cache forever (scripted lines repeat across events); long speeches are
+  // chunked. A failed cache write must never break playback.
+  try { await setCached(usedVoice, text, b64); } catch { /* serve uncached */ }
 
   return audioResponse(audioBuffer);
 }
