@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
 import { playIncoming, playSuccess, playError, playUnlock, playTransmission, playStamp, playDotPling, playCrescendo, playStaticBurst, startAmbient, stopAmbient } from "@/lib/audio";
-import { speak, prewarmSpeech } from "@/lib/speech";
+import { speak, prewarmSpeech, setVoicePreset, VOICE_PRESETS, VoicePreset } from "@/lib/speech";
 import { Team, AdminMessage, HQState, TeamProgress } from "@/lib/types";
 import { tBase, FONT } from "@/lib/styles";
 import { useTypewriter } from "./TypedMsg";
@@ -92,6 +92,9 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
         setLastMsgId(msg.id);
         setIncomingMsg(msg);
       }
+      // Follow the voice chosen in admin
+      const vp = await sGet<VoicePreset>("lynx-voice-preset", null);
+      if (vp && VOICE_PRESETS.some((p) => p.id === vp)) setVoicePreset(vp);
     };
     poll();
     const iv = setInterval(poll, 1500);

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
 import { playBoot, playIncoming, playAlert, playUnlock, playError, playComplete } from "@/lib/audio";
-import { speak, prewarmSpeech } from "@/lib/speech";
+import { speak, prewarmSpeech, setVoicePreset, VOICE_PRESETS, VoicePreset } from "@/lib/speech";
 import { LynxEvent, TeamProgress } from "@/lib/types";
 import { hqBase, cBtn, FONT } from "@/lib/styles";
 import { useTypewriter } from "./TypedMsg";
@@ -62,6 +62,9 @@ export default function HQScreen({ event }: Props) {
         setPhase(hqState.phase);
         if (hqState.phase === "boot") setBooted(false);
       }
+      // Follow the voice chosen in admin
+      const vp = await sGet<VoicePreset>("lynx-voice-preset", null);
+      if (vp && VOICE_PRESETS.some((p) => p.id === vp)) setVoicePreset(vp);
     };
     poll();
     const iv = setInterval(poll, 1500);

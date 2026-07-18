@@ -36,6 +36,13 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   const [showGuide, setShowGuide] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<VoicePreset>(getVoicePreset());
 
+  // Load the saved voice choice on mount (shared with HQ + terminals via KV)
+  useEffect(() => {
+    sGet<VoicePreset>("lynx-voice-preset", null).then((vp) => {
+      if (vp && VOICE_PRESETS.some((p) => p.id === vp)) { setVoicePreset(vp); setSelectedVoice(vp); }
+    });
+  }, []);
+
   const theme = event.theme;
   const v = theme.vocabulary;
 
@@ -300,7 +307,7 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
         <div style={{ fontSize: "clamp(0.65rem,1.3vw,0.8rem)", color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 10, fontWeight: 700 }}>🎙 DIREKTÖRENS RÖST</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {VOICE_PRESETS.map((vp) => (
-            <button key={vp.id} onClick={() => { setVoicePreset(vp.id); setSelectedVoice(vp.id); previewVoice(vp.id); }} style={{
+            <button key={vp.id} onClick={() => { setVoicePreset(vp.id); setSelectedVoice(vp.id); sSet("lynx-voice-preset", vp.id); previewVoice(vp.id); }} style={{
               flex: "1 1 100px", padding: "10px 8px",
               background: selectedVoice === vp.id ? `${theme.accentColor}15` : "rgba(10,16,24,0.6)",
               border: `1px solid ${selectedVoice === vp.id ? theme.accentColor : "#2a3a4a"}`,
