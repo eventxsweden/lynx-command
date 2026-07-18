@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
 import { playIncoming, playSuccess, playError, playUnlock, playTransmission, playStamp, playDotPling, playCrescendo, playStaticBurst, startAmbient, stopAmbient } from "@/lib/audio";
-import { speak } from "@/lib/speech";
+import { speak, prewarmSpeech } from "@/lib/speech";
 import { Team, AdminMessage, HQState, TeamProgress } from "@/lib/types";
 import { tBase, FONT } from "@/lib/styles";
 import { useTypewriter } from "./TypedMsg";
@@ -113,6 +113,14 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
     setMissionStartTime(Date.now());
     setAttempts(0);
     setHintsUsed(0);
+  }, [mIdx]);
+
+  // Pre-generate this mission's speech while the load animation shows,
+  // so briefing + success lines start instantly when spoken.
+  useEffect(() => {
+    const cur = team.missions[mIdx];
+    if (cur) { prewarmSpeech(cur.briefing); prewarmSpeech(cur.successMsg); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mIdx]);
 
   // ── Per-team activation code entry ──
@@ -514,20 +522,26 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
 }
 
 function BriefingWithConfirm({ text, teamColor, onConfirm, vocabulary }: { text: string; teamColor: string; onConfirm: () => void; vocabulary: { mission: string; station: string; hq: string; agent: string; briefcase: string } }) {
-  const [typedBrief, briefDone] = useTypewriter(text, 22);
+  const [started, setStarted] = useState(false);
+  const [typedBrief, briefDone] = useTypewriter(started ? text : null, 22);
 
-  // Also speak the briefing
+  // Speak the briefing; the typewriter starts when the audio actually begins
+  // (5s fallback so the screen never stays empty if audio can't play).
   useEffect(() => {
-    speak(text, 0.92);
+    setStarted(false);
+    const fallback = setTimeout(() => setStarted(true), 5000);
+    const begin = () => { clearTimeout(fallback); setStarted(true); };
+    speak(text, 0.92, begin);
+    return () => clearTimeout(fallback);
   }, [text]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 560 }}>
       <div style={{ fontSize: "clamp(0.75rem,1.4vw,1rem)", lineHeight: 1.8, textAlign: "center", color: "#8aa0b5", minHeight: "3em", fontFamily: FONT, padding: "0 12px" }}>
         {typedBrief}
-        {!briefDone && <span style={{ color: teamColor, animation: "blink 0.6s infinite" }}>▊</span>}
+        {!(started && briefDone) && <span style={{ color: teamColor, animation: "blink 0.6s infinite" }}>▊</span>}
       </div>
-      {briefDone && (
+      {started && briefDone && (
         <button onClick={onConfirm} style={{
           padding: "clamp(12px,2vw,18px) clamp(28px,6vw,50px)",
           background: `${teamColor}12`, border: `2px solid ${teamColor}`,

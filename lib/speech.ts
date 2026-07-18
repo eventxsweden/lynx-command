@@ -29,8 +29,8 @@ export function getVoicePreset(): VoicePreset { return activePreset; }
 
 let currentAudio: HTMLAudioElement | null = null;
 
-function speakWithBrowserFallback(text: string, rateOverride?: number): Promise<void> {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return Promise.resolve();
+function speakWithBrowserFallback(text: string, rateOverride?: number, onStart?: () => void): Promise<void> {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) { onStart?.(); return Promise.resolve(); }
   window.speechSynthesis.cancel();
 
   const config = VOICE_PRESETS.find((v) => v.id === activePreset) || VOICE_PRESETS[0];
@@ -58,6 +58,7 @@ function speakWithBrowserFallback(text: string, rateOverride?: number): Promise<
   }
 
   return new Promise<void>((resolve) => {
+    u.onstart = () => onStart?.();
     u.onend = () => resolve();
     u.onerror = () => resolve();
     speechSynthesis.speak(u);
@@ -66,9 +67,10 @@ function speakWithBrowserFallback(text: string, rateOverride?: number): Promise<
 
 // Speaks via the server-side ElevenLabs TTS route when configured, falling back to the
 // browser's built-in speechSynthesis (worse quality, but works offline/without an API key).
-// Resolves when playback has finished, so callers can wait before switching screens.
-export async function speak(text: string, rateOverride?: number): Promise<void> {
-  if (!speechEnabled) return;
+// Resolves when playback has finished; onStart fires when audio actually begins,
+// so screens can sync typewriter text to the voice.
+export async function speak(text: string, rateOverride?: number, onStart?: () => void): Promise<void> {
+  if (!speechEnabled) { onStart?.(); return; }
   if (typeof window === "undefined") return;
 
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -88,6 +90,7 @@ export async function speak(text: string, rateOverride?: number): Promise<void> 
     audio.playbackRate = rateOverride ?? 1;
     currentAudio = audio;
     await audio.play();
+    onStart?.();
     await new Promise<void>((resolve) => {
       audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
       // pause() (from a newer speak/stopSpeech) must also release waiting callers
@@ -95,8 +98,19 @@ export async function speak(text: string, rateOverride?: number): Promise<void> 
       audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
     });
   } catch {
-    await speakWithBrowserFallback(text, rateOverride);
+    await speakWithBrowserFallback(text, rateOverride, onStart);
   }
+}
+
+// Generates + caches the TTS audio for a line without playing it. Fire on screens
+// shown BEFORE a long speech (e.g. HQ boot) so playback starts instantly later.
+export function prewarmSpeech(text: string) {
+  if (typeof window === "undefined" || !text) return;
+  fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, preset: activePreset }),
+  }).catch(() => { /* best effort */ });
 }
 
 export function previewVoice(preset: VoicePreset) {

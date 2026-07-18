@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { sSet, sGet } from "@/lib/storage";
 import { playBoot, playIncoming, playAlert, playUnlock, playError, playComplete } from "@/lib/audio";
-import { speak } from "@/lib/speech";
+import { speak, prewarmSpeech } from "@/lib/speech";
 import { LynxEvent, TeamProgress } from "@/lib/types";
 import { hqBase, cBtn, FONT } from "@/lib/styles";
 import { useTypewriter } from "./TypedMsg";
@@ -40,6 +40,13 @@ export default function HQScreen({ event }: Props) {
       if (!existing) sSet("lynx-hq-state", { phase: "boot", timestamp: Date.now() });
     });
   }, []);
+
+  // Pre-generate the long intro audio while the unlock/boot screens show,
+  // so the voice starts instantly when the intro phase begins.
+  useEffect(() => {
+    prewarmSpeech(theme.introSpeech);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme.introSpeech]);
 
   useEffect(() => {
     const poll = async () => {
@@ -80,8 +87,7 @@ export default function HQScreen({ event }: Props) {
     if (phase !== "boot") setBooted(true);
     if (phase === "intro") {
       playIncoming();
-      setTimeout(() => speak(theme.introSpeech), 800);
-      // Auto-advance to activate after intro speech (~20s for long text)
+      // IntroPhase speaks and syncs its typewriter to the audio start
       const speechLen = Math.max(theme.introSpeech.length * 55, 12000);
       const t = setTimeout(() => advancePhase("activate"), speechLen);
       return () => clearTimeout(t);
@@ -297,8 +303,19 @@ export default function HQScreen({ event }: Props) {
 // Sub-components that use hooks at top level
 
 function IntroPhase({ theme, event }: { theme: LynxEvent["theme"]; event: LynxEvent }) {
-  const [t, d] = useTypewriter(theme.introSpeech, 28);
+  const [started, setStarted] = useState(false);
+  const [t, d] = useTypewriter(started ? theme.introSpeech : null, 28);
   const H = hqBase(theme.bgGradient);
+
+  // Speak on mount; the typewriter starts when the audio actually begins
+  // (6s fallback if audio can't play, so the screen never stays empty).
+  useEffect(() => {
+    const fallback = setTimeout(() => setStarted(true), 6000);
+    const begin = () => { clearTimeout(fallback); setStarted(true); };
+    const t0 = setTimeout(() => speak(theme.introSpeech, undefined, begin), 800);
+    return () => { clearTimeout(t0); clearTimeout(fallback); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme.introSpeech]);
   return (
     <div style={H}>
       <VideoBackground src="/videos/spy-hud.mp4" opacity={0.12} overlay="radial-gradient(ellipse at center, transparent 20%, #060a10 70%)" />
