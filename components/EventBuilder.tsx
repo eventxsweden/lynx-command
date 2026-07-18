@@ -85,6 +85,8 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
   const [editEvent, setEditEvent] = useState<LynxEvent>(event);
   const [stationTeamIdx, setStationTeamIdx] = useState(0);
   const [previewMission, setPreviewMission] = useState<GeneratedMission | null>(null);
+  const [openMission, setOpenMission] = useState<string | null>(null);
+  const [showSpeeches, setShowSpeeches] = useState(false);
 
   const save = (evt: LynxEvent) => {
     const evts = allEvents.some((e) => e.id === evt.id)
@@ -92,6 +94,11 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
       : [...allEvents, evt];
     sSet("lynx-events", evts);
     onEventsChange(evts);
+    // If this is the active event, push the changes live immediately
+    if (evt.id === event.id) {
+      sSet("lynx-active-event", evt);
+      onEventChange(evt);
+    }
   };
 
   const activate = (evt: LynxEvent) => {
@@ -329,6 +336,28 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
         </div>
       </div>
 
+      {/* Director speeches */}
+      <div style={card()}>
+        <button onClick={() => setShowSpeeches(!showSpeeches)} style={{ width: "100%", background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: FONT }}>
+          <span style={{ fontSize: S.label, color: "#8aa0b0", letterSpacing: "0.08em", fontWeight: 700 }}>🗣 DIREKTÖRENS TAL</span>
+          <span style={{ fontSize: S.body, color: "#5a7a8a" }}>{showSpeeches ? "▲ DÖLJ" : "▼ REDIGERA"}</span>
+        </button>
+        {showSpeeches && (
+          <div style={{ marginTop: 12 }}>
+            <Label>Intro (läses upp när eventet startar)</Label>
+            <Textarea value={editEvent.theme.introSpeech} rows={7} onChange={(v) => setEditEvent({ ...editEvent, theme: { ...editEvent.theme, introSpeech: v } })} />
+            <div style={{ marginTop: 10 }}>
+              <Label>Slutkod rätt ({editEvent.theme.vocabulary.briefcase.toLowerCase()} öppnas)</Label>
+              <Textarea value={editEvent.theme.unlockSpeech || ""} rows={3} onChange={(v) => setEditEvent({ ...editEvent, theme: { ...editEvent.theme, unlockSpeech: v } })} />
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Label>Avslutning (certifiering)</Label>
+              <Textarea value={editEvent.theme.completeSpeech} rows={7} onChange={(v) => setEditEvent({ ...editEvent, theme: { ...editEvent.theme, completeSpeech: v } })} />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Teams */}
       <div style={{ fontSize: S.label, color: "#5a7a8a", letterSpacing: "0.12em", marginBottom: 8, marginTop: 6 }}>TEAM ({editEvent.teams.length})</div>
       <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
@@ -356,16 +385,44 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}><Label>Namn</Label><Input value={team.name} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].name = v; setEditEvent(u); }} /></div>
+            <div style={{ flex: 0.45 }}><Label>Teamkod</Label><Input value={team.activationCode || ""} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].activationCode = v || undefined; setEditEvent(u); }} /></div>
             <div style={{ flex: 0.35 }}><Label>Siffra</Label><Input value={team.finalDigit} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].finalDigit = v; setEditEvent(u); }} /></div>
           </div>
 
           <div style={{ fontSize: S.small, color: "#5a7a8a", marginBottom: 6 }}>{editEvent.theme.vocabulary.mission} ({team.missions.length})</div>
-          {team.missions.map((m, mi) => (
-            <div key={mi} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4, background: "rgba(10,16,24,0.3)", borderRadius: 6, border: "1px solid #1a253040" }}>
-              <span style={{ fontSize: S.body, color: "#8aa0b0", flex: 1 }}>{mi + 1}. {m.icon} <strong>{m.title}</strong> — svar: <span style={{ color: "#33ff88", fontWeight: 700 }}>{m.answer}</span></span>
-              <button onClick={() => { const u = { ...editEvent }; u.teams[ti].missions.splice(mi, 1); setEditEvent(u); }} style={{ ...actionBtn("#6a3a3a"), padding: "8px 12px" }}>✕</button>
-            </div>
-          ))}
+          {team.missions.map((m, mi) => {
+            const key = `${ti}-${mi}`;
+            const open = openMission === key;
+            return (
+              <div key={mi} style={{ marginBottom: 4, background: "rgba(10,16,24,0.3)", borderRadius: 6, border: `1px solid ${open ? team.color + "40" : "#1a253040"}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
+                  <span style={{ fontSize: S.body, color: "#8aa0b0", flex: 1 }}>{mi + 1}. {m.icon} <strong>{m.title}</strong> — svar: <span style={{ color: "#33ff88", fontWeight: 700 }}>{m.answer}</span></span>
+                  <button onClick={() => setOpenMission(open ? null : key)} style={{ ...actionBtn(open ? team.color : "#5a7a8a"), padding: "8px 12px" }}>{open ? "▲" : "✏"}</button>
+                  <button onClick={() => { const u = { ...editEvent }; u.teams[ti].missions.splice(mi, 1); setEditEvent(u); if (open) setOpenMission(null); }} style={{ ...actionBtn("#6a3a3a"), padding: "8px 12px" }}>✕</button>
+                </div>
+                {open && (
+                  <div style={{ padding: "0 12px 12px" }}>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <div style={{ flex: 1 }}><Label>Titel</Label><Input value={m.title} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].title = v; setEditEvent(u); }} /></div>
+                      <div style={{ flex: 0.3 }}><Label>Svar</Label><Input value={m.answer} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].answer = v; u.teams[ti].missions[mi].answerLen = v.length; setEditEvent(u); }} /></div>
+                    </div>
+                    <Label>Briefing (visas + läses upp vid uppdragsstart)</Label>
+                    <Textarea value={m.briefing} rows={4} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].briefing = v; setEditEvent(u); }} />
+                    <div style={{ marginTop: 8 }}>
+                      <Label>Godkänt-replik</Label>
+                      <Textarea value={m.successMsg} rows={2} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].successMsg = v; setEditEvent(u); }} />
+                    </div>
+                    {m.hints.map((h, hi) => (
+                      <div key={hi} style={{ marginTop: 8 }}>
+                        <Label>Ledtråd {hi + 1} ({h.level === "mild" ? "mild" : h.level === "medium" ? "medium" : "stark"})</Label>
+                        <Textarea value={h.text} rows={2} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].hints[hi].text = v; setEditEvent(u); }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <button onClick={() => { setStationTeamIdx(ti); setView("stations"); }} style={{ ...actionBtn(team.color), width: "100%", marginTop: 8, padding: "12px", fontSize: S.body, fontWeight: 700 }}>
             + LÄGG TILL {editEvent.theme.vocabulary.station.toUpperCase()}
           </button>
@@ -421,6 +478,17 @@ function Input({ value, onChange }: { value: string; onChange: (v: string) => vo
       width: "100%", padding: "12px 14px", background: "rgba(10,16,24,0.8)",
       border: "1px solid #3a4a5a", borderRadius: 8, color: "#c0d8e8",
       fontSize: S.body, fontFamily: FONT, outline: "none",
+    }} />
+  );
+}
+
+function Textarea({ value, onChange, rows = 3 }: { value: string; onChange: (v: string) => void; rows?: number }) {
+  return (
+    <textarea value={value} rows={rows} onChange={(e) => onChange(e.target.value)} style={{
+      width: "100%", padding: "12px 14px", background: "rgba(10,16,24,0.8)",
+      border: "1px solid #3a4a5a", borderRadius: 8, color: "#c0d8e8",
+      fontSize: S.body, fontFamily: FONT, outline: "none", lineHeight: 1.6,
+      resize: "vertical", boxSizing: "border-box" as const,
     }} />
   );
 }
