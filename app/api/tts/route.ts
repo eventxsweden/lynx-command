@@ -21,12 +21,6 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "TTS not configured" }, { status: 503 });
 
-  const voiceId = voiceIdForPreset(preset || "robot");
-  const fallbackVoice = fallbackVoiceForPreset(preset || "robot");
-
-  const cached = await getCached(voiceId, text);
-  if (cached) return audioResponse(cached);
-
   const generate = (voice: string) =>
     fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
       method: "POST",
@@ -42,26 +36,31 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-  let res = await generate(voiceId);
-  let usedVoice = voiceId;
+  // Try the preset's preferred voice first, then its fallback, then Adam (always
+  // available). Library/legacy voices are plan-gated — once the ElevenLabs plan
+  // is upgraded, the preferred voice starts succeeding and takes over.
+  const ADAM = "pNInz6obpgDQGcFmaJgB";
+  const candidates = [...new Set([
+    voiceIdForPreset(preset || "robot"),
+    fallbackVoiceForPreset(preset || "robot"),
+    ADAM,
+  ])];
 
-  // Library voices require a paid ElevenLabs plan for API use. On free plans,
-  // fall back to a premade voice so the natural voice still works. Once the
-  // plan is upgraded, the requested voice succeeds and takes over automatically.
-  if (!res.ok && voiceId !== fallbackVoice) {
-    const detail = await res.text();
-    if (!detail.includes("paid_plan_required") && !detail.includes("voice_not_found")) {
-      return NextResponse.json({ error: "ElevenLabs request failed", detail }, { status: 502 });
-    }
-    const cachedFallback = await getCached(fallbackVoice, text);
-    if (cachedFallback) return audioResponse(cachedFallback);
-    res = await generate(fallbackVoice);
-    usedVoice = fallbackVoice;
+  let res: Response | null = null;
+  let usedVoice = "";
+  let lastDetail = "";
+  for (const voice of candidates) {
+    const cached = await getCached(voice, text);
+    if (cached) return audioResponse(cached);
+    const attempt = await generate(voice);
+    if (attempt.ok) { res = attempt; usedVoice = voice; break; }
+    lastDetail = await attempt.text();
+    // Only voice-availability errors move on to the next candidate
+    if (!/paid_plan_required|voice_not_found|payment_required/.test(lastDetail)) break;
   }
 
-  if (!res.ok) {
-    const detail = await res.text();
-    return NextResponse.json({ error: "ElevenLabs request failed", detail }, { status: 502 });
+  if (!res) {
+    return NextResponse.json({ error: "ElevenLabs request failed", detail: lastDetail }, { status: 502 });
   }
 
   const audioBuffer = Buffer.from(await res.arrayBuffer());

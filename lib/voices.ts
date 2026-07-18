@@ -17,9 +17,10 @@ const ENV_OVERRIDE: Record<VoicePreset, string | undefined> = {
   agent: process.env.ELEVENLABS_VOICE_AGENT,
 };
 
-// Premade ElevenLabs voices — usable on the free plan, unlike library voices
+// Premade ElevenLabs voices — usable on the free plan, unlike library voices.
+// (Rachel is legacy/plan-gated nowadays; Bella is the free female premade.)
 const FALLBACK_VOICE_IDS: Record<VoicePreset, string> = {
-  robot: "21m00Tcm4TlvDq8ikWAM", // Rachel — crisp, androgynous
+  robot: "EXAVITQu4vr4xnSDxMaL", // Bella — soft, clear
   commander: "pNInz6obpgDQGcFmaJgB", // Adam
   agent: "ErXwobaYiN019PkySvjV", // Antoni
 };
