@@ -87,6 +87,32 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
   const [previewMission, setPreviewMission] = useState<GeneratedMission | null>(null);
   const [openMission, setOpenMission] = useState<string | null>(null);
   const [showSpeeches, setShowSpeeches] = useState(false);
+  const [copiedMission, setCopiedMission] = useState<string | null>(null);
+
+  // Copy one team's mission texts (briefing, success line, hints — NOT the answer)
+  // to the other teams' version of the same mission, swapping team symbols.
+  const copyMissionToAllTeams = (ti: number, mi: number) => {
+    const u = { ...editEvent };
+    const src = u.teams[ti];
+    const srcM = src.missions[mi];
+    let copies = 0;
+    u.teams.forEach((t) => {
+      if (t.id === src.id) return;
+      const target = t.missions.find((m) => m.id === srcM.id);
+      if (!target) return;
+      const swap = (s: string) => s.split(src.symbol).join(t.symbol);
+      target.title = swap(srcM.title);
+      target.briefing = swap(srcM.briefing);
+      target.successMsg = swap(srcM.successMsg);
+      target.hints = srcM.hints.map((h) => ({ ...h, text: swap(h.text) }));
+      copies++;
+    });
+    setEditEvent(u);
+    if (copies > 0) {
+      setCopiedMission(`${ti}-${mi}`);
+      setTimeout(() => setCopiedMission(null), 2500);
+    }
+  };
 
   const save = (evt: LynxEvent) => {
     const evts = allEvents.some((e) => e.id === evt.id)
@@ -418,6 +444,16 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
                         <Textarea value={h.text} rows={2} onChange={(v) => { const u = { ...editEvent }; u.teams[ti].missions[mi].hints[hi].text = v; setEditEvent(u); }} />
                       </div>
                     ))}
+                    {editEvent.teams.length > 1 && (
+                      <button onClick={() => copyMissionToAllTeams(ti, mi)} style={{
+                        ...actionBtn(copiedMission === key ? "#33ff88" : "#5a8a9a"),
+                        width: "100%", marginTop: 10, padding: "10px", fontSize: S.body, fontWeight: 700,
+                      }}>
+                        {copiedMission === key
+                          ? `✓ KOPIERAT — ${team.symbol} byttes mot respektive teams symbol`
+                          : "📋 KOPIERA TEXTERNA TILL ALLA TEAM (svar & koder rörs ej)"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
