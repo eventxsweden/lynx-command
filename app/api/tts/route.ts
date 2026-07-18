@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kvGet, kvSet } from "@/lib/store";
-import { voiceIdForPreset, FALLBACK_VOICE } from "@/lib/voices";
+import { voiceIdForPreset, fallbackVoiceForPreset } from "@/lib/voices";
 import { VoicePreset } from "@/lib/speech";
 
 function audioResponse(buffer: Buffer) {
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "TTS not configured" }, { status: 503 });
 
   const voiceId = voiceIdForPreset(preset || "robot");
+  const fallbackVoice = fallbackVoiceForPreset(preset || "robot");
 
   const cached = await getCached(voiceId, text);
   if (cached) return audioResponse(cached);
@@ -47,15 +48,15 @@ export async function POST(req: NextRequest) {
   // Library voices require a paid ElevenLabs plan for API use. On free plans,
   // fall back to a premade voice so the natural voice still works. Once the
   // plan is upgraded, the requested voice succeeds and takes over automatically.
-  if (!res.ok && voiceId !== FALLBACK_VOICE) {
+  if (!res.ok && voiceId !== fallbackVoice) {
     const detail = await res.text();
     if (!detail.includes("paid_plan_required") && !detail.includes("voice_not_found")) {
       return NextResponse.json({ error: "ElevenLabs request failed", detail }, { status: 502 });
     }
-    const cachedFallback = await getCached(FALLBACK_VOICE, text);
+    const cachedFallback = await getCached(fallbackVoice, text);
     if (cachedFallback) return audioResponse(cachedFallback);
-    res = await generate(FALLBACK_VOICE);
-    usedVoice = FALLBACK_VOICE;
+    res = await generate(fallbackVoice);
+    usedVoice = fallbackVoice;
   }
 
   if (!res.ok) {
