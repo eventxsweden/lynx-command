@@ -16,6 +16,9 @@ const ENV_OVERRIDE: Record<VoicePreset, string | undefined> = {
   agent: process.env.ELEVENLABS_VOICE_AGENT,
 };
 
+// Premade ElevenLabs voice (Adam) — usable on the free plan, unlike library voices
+export const FALLBACK_VOICE = "pNInz6obpgDQGcFmaJgB";
+
 export function voiceIdForPreset(preset: VoicePreset): string {
   return ENV_OVERRIDE[preset] || DEFAULT_VOICE_IDS[preset];
 }
