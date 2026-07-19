@@ -103,7 +103,8 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
     { id: "boot", label: "BOOT", icon: "🔄" }, { id: "intro", label: "INTRO", icon: "📢" },
     { id: "activate", label: "KOD", icon: "🔐" }, { id: "dispatch", label: "DISPATCH", icon: "🚀" },
     { id: "active", label: "AKTIV", icon: "▶" }, { id: "converge", label: "SAMLING", icon: "📍" },
-    { id: "final_code", label: "SLUTKOD", icon: "🎯" }, { id: "complete", label: "KLAR", icon: "✓" },
+    { id: "final_code", label: "SLUTKOD", icon: "🎯" }, { id: "safe_reveal", label: "KASSASKÅP", icon: "🔐" },
+    { id: "complete", label: "KLAR", icon: "✓" },
   ];
 
   const allDone = event.teams.every((t) => teamProgress[t.id]?.allDone);

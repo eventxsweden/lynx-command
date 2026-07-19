@@ -58,6 +58,7 @@ export interface LynxEvent {
   theme: Theme;
   activationCode: string;
   finalCode: string;
+  safeCode?: string; // Physical safe combination revealed on HQ after the final code is verified
   timerMinutes: number | null;
   teams: Team[];
   createdAt: number;

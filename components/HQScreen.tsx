@@ -18,7 +18,7 @@ interface Props {
   event: LynxEvent;
 }
 
-const VALID_PHASES = ["boot", "intro", "activate", "dispatch", "active", "converge", "final_code", "complete"];
+const VALID_PHASES = ["boot", "intro", "activate", "dispatch", "active", "converge", "final_code", "safe_reveal", "complete"];
 
 export default function HQScreen({ event }: Props) {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
@@ -97,6 +97,11 @@ export default function HQScreen({ event }: Props) {
     }
     if (phase === "dispatch") { playAlert(); setTimeout(() => speak(`Team aktiverade. Gå till era ${v.station.toLowerCase()}er. Varje team har en terminal med egna ${v.mission.toLowerCase()}. Ledtrådarna i rummet är markerade med ert teams symbol. Rör inte andras. Klara alla ${v.mission.toLowerCase()} och återvänd hit.`), 800); }
     if (phase === "converge") { playIncoming(); setTimeout(() => speak(`Alla team har slutfört sina ${v.mission.toLowerCase()}. Varje team har en kodsiffra. Ingen känner hela koden. Samlas. Dela era siffror med varandra och ange slutkoden. Det här är ert sista prov — kan ni lita på varandra?`), 800); }
+    if (phase === "safe_reveal") {
+      playUnlock();
+      const digits = (event.safeCode || event.finalCode).split("").join(" ");
+      setTimeout(() => speak(`Koderna stämmer. Kassaskåpets kod är ${digits}. ${theme.unlockSpeech || ""}`), 800);
+    }
     if (phase === "complete") { playComplete(); setTimeout(() => speak(theme.completeSpeech), 800); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -131,10 +136,9 @@ export default function HQScreen({ event }: Props) {
   const handleFinal = useCallback(() => {
     if (codeIn === event.finalCode) {
       playUnlock(); setFb({ type: "success" });
-      setTimeout(() => speak(theme.unlockSpeech || `${v.briefcase} upplåst!`), 300);
-      // Auto-advance to complete after 3s
+      // Advance to the safe-code reveal (the reveal screen speaks the instructions)
       if (fbT.current) clearTimeout(fbT.current);
-      fbT.current = setTimeout(() => { setFb(null); advancePhase("complete"); }, 3000);
+      fbT.current = setTimeout(() => { setFb(null); advancePhase("safe_reveal"); }, 2500);
     } else {
       playError(); setFb({ type: "error" }); setCodeIn("");
       if (fbT.current) clearTimeout(fbT.current);
@@ -272,13 +276,44 @@ export default function HQScreen({ event }: Props) {
       <div style={{ position: "absolute", inset: 0, border: "3px solid #ff330044", pointerEvents: "none", animation: "alert-flash 1.5s infinite" }} />
       <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: "#ff6633", opacity: 0.6, fontFamily: FONT }}>⚠ SLUTPROV</div>
       <h1 style={{ fontSize: "clamp(1.3rem,3vw,2.5rem)", fontWeight: 700, color: fb?.type === "success" ? theme.successColor : fb?.type === "error" ? "#ff4444" : "#ff6633", textShadow: fb?.type === "success" ? `0 0 30px ${theme.successColor}60` : "0 0 30px rgba(255,100,50,0.35)", margin: 0, textAlign: "center", animation: fb?.type === "error" ? "shake 0.4s" : "none", fontFamily: FONT }}>
-        {fb?.type === "success" ? `✓ ${v.briefcase.toUpperCase()} UPPLÅST` : fb?.type === "error" ? "⚠ FEL KOD" : "ANGE SLUTKOD"}
+        {fb?.type === "success" ? "✓ KODERNA STÄMMER" : fb?.type === "error" ? "⚠ FEL KOD" : "ANGE SLUTKOD"}
       </h1>
       {fb?.type === "error" && <div style={{ color: "#ff4444", fontSize: "clamp(0.65rem,1.1vw,0.85rem)", animation: "shake 0.4s", fontFamily: FONT }}>FEL KOD — KONTROLLERA MED ALLA TEAM</div>}
       {fb?.type !== "success" && <Numpad value={codeIn} onChange={(fn) => setCodeIn(fn)} onSubmit={handleFinal} maxLen={event.finalCode.length} disabled={!!fb} accentColor="#ff6633" />}
       <ScanLines /><MuteButton />
     </div>
   );
+
+  // ── SAFE REVEAL — the physical safe combination + key/bag instructions ──
+  if (phase === "safe_reveal") {
+    const safeCode = event.safeCode || event.finalCode;
+    return (
+      <div style={{ ...H, background: "radial-gradient(ellipse at center,#0a1420 0%,#080c12 70%)" }}>
+        <VideoBackground src="/videos/spy-hud.mp4" opacity={0.08} overlay="radial-gradient(ellipse at center, transparent 25%, #060a10 75%)" />
+        <div style={{ zIndex: 2, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: "clamp(8px,2vh,20px)", textAlign: "center", padding: "0 20px" }}>
+          <div style={{ fontSize: "clamp(0.5rem,0.9vw,0.7rem)", letterSpacing: "0.3em", color: theme.successColor, opacity: 0.7, fontFamily: FONT, animation: "blink 2s infinite" }}>✓ ÅTKOMST BEVILJAD — KOD DEKRYPTERAD</div>
+        <div style={{ fontSize: "clamp(0.7rem,1.4vw,1rem)", letterSpacing: "0.25em", color: theme.accentColor, fontFamily: FONT }}>KOD TILL {v.briefcase.toUpperCase()}</div>
+          <div style={{
+            fontSize: "clamp(3.5rem,14vw,10rem)", fontWeight: 700, letterSpacing: "0.15em",
+            color: theme.successColor, fontFamily: FONT,
+            textShadow: `0 0 40px ${theme.successColor}90, 0 0 90px ${theme.successColor}50`,
+            animation: "glow-pulse 2s infinite",
+          }}>{safeCode}</div>
+          <div style={{ maxWidth: 640, fontSize: "clamp(0.8rem,1.6vw,1.15rem)", lineHeight: 1.8, color: "#9ab8c8", fontFamily: FONT, marginTop: 4 }}>
+            {theme.unlockSpeech || `Slå in koden på ${v.briefcase.toLowerCase()}. Inuti ligger nyckeln till väskan.`}
+          </div>
+          <div style={{ display: "flex", gap: "clamp(20px,5vw,44px)", marginTop: "clamp(8px,2vh,20px)", alignItems: "center", fontSize: "clamp(0.55rem,1vw,0.75rem)", color: "#6a8a9a", fontFamily: FONT, flexWrap: "wrap", justifyContent: "center" }}>
+            <span>🔢 SLÅ IN KODEN</span><span style={{ opacity: 0.4 }}>→</span>
+            <span>🔑 HÄMTA NYCKELN</span><span style={{ opacity: 0.4 }}>→</span>
+            <span>💼 ÖPPNA VÄSKAN</span><span style={{ opacity: 0.4 }}>→</span>
+            <span style={{ color: theme.successColor }}>🧪 SERUMEN</span>
+          </div>
+        </div>
+        <HQAtmosphere color={theme.successColor} />
+        <ScanLines /><MuteButton />
+      </div>
+    );
+  }
 
   // ── COMPLETE ──
   if (phase === "complete") return (

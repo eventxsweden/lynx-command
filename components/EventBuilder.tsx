@@ -334,9 +334,13 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
             <Input value={editEvent.activationCode} onChange={(v) => setEditEvent({ ...editEvent, activationCode: v })} />
           </div>
           <div style={{ flex: 1 }}>
-            <Label>Slutkod</Label>
+            <Label>Slutkod (teamens siffror)</Label>
             <Input value={editEvent.finalCode} onChange={(v) => setEditEvent({ ...editEvent, finalCode: v })} />
           </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <Label>Kassaskåpskod (avslöjas efter rätt slutkod — ställ in på fysiska låset)</Label>
+          <Input value={editEvent.safeCode || ""} onChange={(v) => setEditEvent({ ...editEvent, safeCode: v || undefined })} />
         </div>
         <div style={{ marginTop: 10 }}>
           <Label>Timer (minuter, 0 = ingen)</Label>
@@ -373,7 +377,7 @@ export default function EventBuilder({ event, allEvents, onEventChange, onEvents
             <Label>Intro (läses upp när eventet startar)</Label>
             <Textarea value={editEvent.theme.introSpeech} rows={7} onChange={(v) => setEditEvent({ ...editEvent, theme: { ...editEvent.theme, introSpeech: v } })} />
             <div style={{ marginTop: 10 }}>
-              <Label>Slutkod rätt ({editEvent.theme.vocabulary.briefcase.toLowerCase()} öppnas)</Label>
+              <Label>Kassaskåpskod avslöjas (instruktion: kod → nyckel → väska → serum)</Label>
               <Textarea value={editEvent.theme.unlockSpeech || ""} rows={3} onChange={(v) => setEditEvent({ ...editEvent, theme: { ...editEvent.theme, unlockSpeech: v } })} />
             </div>
             <div style={{ marginTop: 10 }}>
