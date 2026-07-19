@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { sSet, sGet } from "@/lib/storage";
+import { sSet, sGet, sDel } from "@/lib/storage";
 import { LynxEvent, TeamProgress, HQState, PresetMessage } from "@/lib/types";
 import { FONT } from "@/lib/styles";
 import EventBuilder from "./EventBuilder";
@@ -35,6 +35,8 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
   const [showLinks, setShowLinks] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<VoicePreset>(getVoicePreset());
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   // Load the saved voice choice on mount (shared with HQ + terminals via KV)
   useEffect(() => {
@@ -84,6 +86,29 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
     setHqState({ phase, timestamp: Date.now() });
   };
 
+  // One-click "clean slate" before running the event for real:
+  // wipe every team's progress, stats and messages, then send HQ back to BOOT.
+  const resetForStart = async () => {
+    await Promise.all(event.teams.flatMap((t) => [
+      sDel(`lynx-team-${t.id}`),
+      sDel(`lynx-stats-${t.id}`),
+      sDel(`lynx-msg-${t.id}`),
+    ]));
+    await sSet("lynx-hq-state", { phase: "boot", timestamp: Date.now() });
+    setHqState({ phase: "boot", timestamp: Date.now() });
+    setTeamProgress({});
+    setConfirmReset(false);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 2500);
+  };
+
+  // Clean = HQ at boot and no team has started/finished (no leftover test data)
+  const hasProgress = event.teams.some((t) => {
+    const p = teamProgress[t.id];
+    return p && (p.missionIndex > 0 || p.allDone || p.active);
+  });
+  const isCleanBoot = hqState.phase === "boot" && !hasProgress;
+
   const updateAnswer = (teamId: string, mIdx: number, newAnswer: string) => {
     const updated = { ...event };
     const team = updated.teams.find((t) => t.id === teamId);
@@ -126,15 +151,50 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
 
       {/* ═══ Active Event Banner + Links ═══ */}
       <div style={{ background: `${theme.accentColor}08`, border: `1px solid ${theme.accentColor}25`, borderRadius: 10, padding: "12px 16px", marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: "clamp(0.55rem,1.1vw,0.65rem)", color: "#5a7a8a", letterSpacing: "0.15em" }}>AKTIVT EVENT</div>
-            <div style={{ fontSize: "clamp(0.85rem,1.8vw,1rem)", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "clamp(0.55rem,1.1vw,0.65rem)", color: "#5a7a8a", letterSpacing: "0.15em" }}>AKTIVT EVENT — styrs härifrån</div>
+            <div style={{ fontSize: "clamp(1rem,2.2vw,1.25rem)", color: theme.accentColor, fontWeight: 700 }}>{event.name}</div>
+            <div style={{ fontSize: "clamp(0.5rem,1vw,0.6rem)", color: "#4a6a7a" }}>{event.theme.name} · {event.teams.length} team · {event.teams.reduce((a, t) => a + t.missions.length, 0)} uppdrag</div>
           </div>
-          <button onClick={() => setShowLinks(!showLinks)} style={{ padding: "6px 12px", background: showLinks ? `${theme.accentColor}15` : "transparent", border: `1px solid ${showLinks ? theme.accentColor : "#2a3a4a"}`, borderRadius: 6, color: showLinks ? theme.accentColor : "#5a7a8a", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" }}>
-            🔗 LÄNKAR
-          </button>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <button onClick={() => setShowBuilder(true)} style={{ padding: "6px 12px", background: "transparent", border: "1px solid #2a3a4a", borderRadius: 6, color: "#7a9aaa", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" }}>🔀 BYT</button>
+            <button onClick={() => setShowLinks(!showLinks)} style={{ padding: "6px 12px", background: showLinks ? `${theme.accentColor}15` : "transparent", border: `1px solid ${showLinks ? theme.accentColor : "#2a3a4a"}`, borderRadius: 6, color: showLinks ? theme.accentColor : "#5a7a8a", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" }}>
+              🔗 LÄNKAR
+            </button>
+          </div>
         </div>
+
+        {/* Codes at a glance */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+          {[
+            { label: "Aktivering", value: event.activationCode },
+            { label: "Slutkod", value: event.finalCode },
+            { label: "Kassaskåp", value: event.safeCode || "— saknas" },
+          ].map((c) => (
+            <div key={c.label} style={{ flex: "1 1 90px", background: "rgba(10,16,24,0.6)", border: `1px solid ${c.value.includes("saknas") ? "#8a5a2a55" : "#1a2a3a"}`, borderRadius: 6, padding: "6px 10px" }}>
+              <div style={{ fontSize: "clamp(0.5rem,1vw,0.6rem)", color: "#5a7a8a", letterSpacing: "0.1em" }}>{c.label}</div>
+              <div style={{ fontSize: "clamp(0.85rem,1.8vw,1.05rem)", color: c.value.includes("saknas") ? "#c88a4a" : "#c0d8e8", fontWeight: 700, letterSpacing: "0.05em" }}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Readiness + one-click reset */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 10, paddingTop: 10, borderTop: "1px solid #1a2530" }}>
+          <div style={{ fontSize: "clamp(0.6rem,1.2vw,0.75rem)", fontWeight: 700, color: resetDone ? "#33ff88" : isCleanBoot ? "#33ff88" : "#e0a03a" }}>
+            {resetDone ? "✓ Nollställt — redo att starta" : isCleanBoot ? "✓ Rent läge — redo att starta" : "⚠ Pågående spel / testdata"}
+          </div>
+          {confirmReset ? (
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <span style={{ fontSize: "clamp(0.6rem,1.1vw,0.72rem)", color: "#c88a4a" }}>Rensa allt?</span>
+              <button onClick={resetForStart} style={{ padding: "7px 14px", background: "rgba(255,80,60,0.15)", border: "1px solid #ff503c", borderRadius: 6, color: "#ff7a5c", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer", fontWeight: 700 }}>JA, NOLLSTÄLL</button>
+              <button onClick={() => setConfirmReset(false)} style={{ padding: "7px 12px", background: "transparent", border: "1px solid #2a3a4a", borderRadius: 6, color: "#7a9aaa", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer" }}>Avbryt</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmReset(true)} style={{ padding: "7px 14px", background: isCleanBoot ? "transparent" : "rgba(224,160,58,0.12)", border: `1px solid ${isCleanBoot ? "#2a3a4a" : "#e0a03a55"}`, borderRadius: 6, color: isCleanBoot ? "#7a9aaa" : "#e0a03a", fontSize: "clamp(0.65rem,1.3vw,0.8rem)", fontFamily: FONT, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>🔄 NOLLSTÄLL INFÖR START</button>
+          )}
+        </div>
+
         {showLinks && <AdminQuickLinks event={event} />}
       </div>
 
@@ -149,14 +209,16 @@ export default function AdminPanel({ event, allEvents, onEventChange, onEventsCh
         {showGuide && (
           <div style={{ background: "rgba(10,16,24,0.8)", border: "1px solid #dda84420", borderRadius: 8, padding: "12px 14px", marginBottom: 10, fontSize: "clamp(0.6rem,1.2vw,0.75rem)", lineHeight: 1.8, color: "#7a9aaa" }}>
             <div style={{ color: "#dda844", fontWeight: 700, marginBottom: 6 }}>KALAS-FLÖDE — steg för steg:</div>
+            <div style={{ color: "#c88a4a", marginBottom: 4 }}>0. <strong>NOLLSTÄLL INFÖR START</strong> (knappen ovan) — rensa testdata så alla terminaler börjar rent.</div>
             <div><span style={{ color: "#5a7a8a" }}>1.</span> <strong style={{ color: theme.accentColor }}>BOOT</strong> — Barnen samlas vid TV:n. Dramatisk uppstart.</div>
             <div><span style={{ color: "#5a7a8a" }}>2.</span> <strong style={{ color: theme.accentColor }}>INTRO</strong> — Direktören talar. Bygger stämning.</div>
-            <div><span style={{ color: "#5a7a8a" }}>3.</span> <strong style={{ color: theme.accentColor }}>KOD</strong> — Barnen skriver aktiveringskoden ({event.activationCode}) på HQ.</div>
+            <div><span style={{ color: "#5a7a8a" }}>3.</span> <strong style={{ color: theme.accentColor }}>KOD</strong> — Varje team skriver sin aktiveringskod på sin terminal.</div>
             <div><span style={{ color: "#5a7a8a" }}>4.</span> <strong style={{ color: theme.accentColor }}>DISPATCH</strong> — &quot;Gå till era baser!&quot; Barnen springer iväg.</div>
             <div><span style={{ color: "#5a7a8a" }}>5.</span> <strong style={{ color: theme.accentColor }}>AKTIV</strong> — Terminalerna går live! Barnen löser uppdrag.</div>
             <div><span style={{ color: "#5a7a8a" }}>6.</span> <strong style={{ color: theme.accentColor }}>SAMLING</strong> — Alla tillbaka med sina kodsiffror.</div>
             <div><span style={{ color: "#5a7a8a" }}>7.</span> <strong style={{ color: theme.accentColor }}>SLUTKOD</strong> — Barnen kombinerar siffrorna på HQ ({event.finalCode}).</div>
-            <div><span style={{ color: "#5a7a8a" }}>8.</span> <strong style={{ color: theme.accentColor }}>KLAR</strong> — Certifiering! Kalas klart.</div>
+            <div><span style={{ color: "#5a7a8a" }}>8.</span> <strong style={{ color: theme.accentColor }}>KASSASKÅP</strong> — HQ visar kassaskåpskoden ({event.safeCode || "sätt i EVENT"}). Barnen öppnar skåpet → nyckel → väska → serum.</div>
+            <div><span style={{ color: "#5a7a8a" }}>9.</span> <strong style={{ color: theme.accentColor }}>KLAR</strong> — Certifiering! Kalas klart.</div>
             <div style={{ color: "#5a6a5a", marginTop: 6, borderTop: "1px solid #1a2530", paddingTop: 6, fontSize: "clamp(0.55rem,1vw,0.65rem)" }}>💡 Tryck på knapparna nedan för att styra HQ-skärmen i realtid.</div>
           </div>
         )}
