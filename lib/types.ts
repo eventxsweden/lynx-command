@@ -77,6 +77,7 @@ export interface TeamProgress {
   allDone: boolean;
   finalDigit: string;
   timestamp: number;
+  active?: boolean; // Team has passed activation — used to resume after a browser reload
 }
 
 export interface AdminMessage {

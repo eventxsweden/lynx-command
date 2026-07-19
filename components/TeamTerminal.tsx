@@ -38,6 +38,8 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
   const [missionStartTime, setMissionStartTime] = useState(Date.now());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLandscape, setIsLandscape] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
+  const hydratedRef = useRef(false);
   const fbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mission = team.missions[mIdx] || null;
 
@@ -45,6 +47,30 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
   useEffect(() => {
     return () => { stopAmbient(); if (fbTimer.current) clearTimeout(fbTimer.current); };
   }, []);
+
+  // ── Resume after a browser reload ──
+  // Progress lives in KV; on mount, restore it so a closed/reopened browser
+  // returns to the same mission instead of restarting from activation.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const hq = await sGet<HQState>("lynx-hq-state", null);
+      const saved = await sGet<TeamProgress>(`lynx-team-${team.id}`, null);
+      const inPlay = hq && ["active", "converge", "final_code", "complete"].includes(hq.phase);
+      if (!cancelled && inPlay && saved?.active) {
+        if (saved.allDone) {
+          setActive(true); setAllDone(true); setNeedsActivation(false);
+        } else {
+          setActive(true); setNeedsActivation(false);
+          setMIdx(Math.min(saved.missionIndex, team.missions.length - 1));
+          setTermPhase("loading");
+        }
+      }
+      if (!cancelled) { hydratedRef.current = true; setHydrated(true); }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team.id]);
 
   // Landscape detection
   useEffect(() => {
@@ -70,7 +96,7 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
     const poll = async () => {
       const hq = await sGet<HQState>("lynx-hq-state", { phase: "boot", timestamp: 0 });
       if (hq) {
-        if (hq.phase === "active" && !active && !needsActivation) {
+        if (hq.phase === "active" && !active && !needsActivation && hydratedRef.current) {
           if (team.activationCode) {
             // Per-team login: each team types their own code on their terminal
             setNeedsActivation(true); playIncoming();
@@ -102,14 +128,16 @@ export default function TeamTerminal({ team, vocabulary: v, allTeams }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, needsActivation, lastMsgId, team.id]);
 
-  // Report progress
+  // Report progress — only after hydration, so the restore read isn't clobbered
   useEffect(() => {
+    if (!hydrated) return;
     sSet(`lynx-team-${team.id}`, {
       teamId: team.id, missionIndex: mIdx, currentMission: mission?.title || "",
       totalMissions: team.missions.length,
       allDone, finalDigit: team.finalDigit, timestamp: Date.now(),
+      active, // true once the team has passed activation — enables resume on reload
     });
-  }, [mIdx, allDone, team, mission?.title]);
+  }, [hydrated, mIdx, allDone, active, team, mission?.title]);
 
   // Track mission timing
   useEffect(() => {
